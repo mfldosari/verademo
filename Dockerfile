@@ -6,6 +6,7 @@
 # This is Ubuntu 20.04 LTS
 FROM mariadb:10.6.2
 
+
 # Configure MariaDB
 ENV MYSQL_RANDOM_ROOT_PASSWORD=true
 ENV MYSQL_DATABASE=blab
