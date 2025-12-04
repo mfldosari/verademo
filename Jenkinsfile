@@ -50,10 +50,16 @@ pipeline {
             }
         }
         
-        stage('Deploy') {
+        stage('Deploy to Kubernetes') {
             steps {
-                echo 'Deploying application...'
-                echo 'Application deployed successfully'
+                echo 'Deploying application to prod-env namespace...'
+                script {
+                    sh '''
+                        kubectl apply -f verademo-deployment.yaml
+                        kubectl rollout status deployment/verademo -n prod-env --timeout=2m
+                    '''
+                }
+                echo 'Application deployed successfully to Kubernetes'
             }
         }
     }
@@ -63,6 +69,7 @@ pipeline {
             echo "Build completed successfully!"
             echo "Docker image: ${DOCKER_IMAGE}"
             echo "CD is deployed!"
+            echo "Access the application at: http://<node-ip>:30100"
         }
         failure {
             echo 'Build failed!'
