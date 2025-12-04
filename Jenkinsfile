@@ -18,6 +18,10 @@ pipeline {
             steps {
                 echo 'Building Docker image...'
                 echo "Building ${DOCKER_IMAGE}"
+                script {
+                    sh "docker build -t ${DOCKER_IMAGE} ."
+                    sh "docker tag ${DOCKER_IMAGE} ${DOCKER_LATEST}"
+                }
                 echo 'Docker image built successfully'
             }
         }
@@ -25,8 +29,7 @@ pipeline {
         stage('List Images') {
             steps {
                 echo 'Listing Docker images...'
-                echo "Image: ${DOCKER_IMAGE}"
-                echo "Image: ${DOCKER_LATEST}"
+                sh 'docker images | grep verademo'
             }
         }
         
@@ -38,7 +41,7 @@ pipeline {
                           submitter: 'admin,devops',
                           parameters: [
                               choice(name: 'DEPLOY_ENVIRONMENT', 
-                                     choices: ['Production', 'Staging'], 
+                                     choices: ['Production', 'development', 'staging'], 
                                      description: 'Select environment to deploy')
                           ]
                 }
