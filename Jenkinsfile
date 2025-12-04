@@ -1,10 +1,14 @@
 pipeline {
     agent any
     
+    parameters {
+        password(name: 'DOCKERHUB_PASSWORD', defaultValue: '', description: 'Docker Hub Password')
+    }
+    
     environment {
-        DOCKER_IMAGE = "verademo:${BUILD_NUMBER}"
-        DOCKER_LATEST = "verademo:latest"
-        IMAGE = "verademo:latest"
+        DOCKERHUB_USERNAME = "mfldosari"
+        DOCKER_IMAGE = "${DOCKERHUB_USERNAME}/verademo:${BUILD_NUMBER}"
+        DOCKER_LATEST = "${DOCKERHUB_USERNAME}/verademo:latest"
     }
     
     stages {
@@ -19,9 +23,9 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
-                echo "Building ${IMAGE}"
+                echo "Building ${DOCKER_IMAGE}"
                 script {
-                    sh "docker build -f Dockerfile.simple -t ${IMAGE} ."
+                    sh "docker build -f Dockerfile.simple -t ${DOCKER_IMAGE} -t ${DOCKER_LATEST} ."
                 }
                 echo 'Docker image built successfully'
             }
@@ -33,7 +37,21 @@ pipeline {
                 sh 'docker images | grep verademo'
             }
         }
-    
+        
+        stage('Push to Docker Hub') {
+            steps {
+                echo 'Pushing image to Docker Hub...'
+                script {
+                    sh '''
+                        echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+                        docker push ${DOCKER_IMAGE}
+                        docker push ${DOCKER_LATEST}
+                        docker logout
+                    '''
+                }
+                echo 'Image pushed successfully to Docker Hub'
+            }
+        }
         
         stage('Pre-Deployment Approval') {
             steps {
@@ -69,7 +87,8 @@ pipeline {
         success {
             echo "Build completed successfully!"
             echo "Docker image: ${DOCKER_IMAGE}"
-            echo "CD is deployed!"
+            echo "Docker Hub image: ${DOCKER_LATEST}"
+            echo "Application deployed to prod-env!"
             echo "Access the application at: http://<node-ip>:30100"
         }
         failure {

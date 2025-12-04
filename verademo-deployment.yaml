@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: verademo
-        image: verademo:latest
+        image: mfldosari/verademo:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80
