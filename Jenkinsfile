@@ -1,10 +1,6 @@
 pipeline {
     agent any
     
-    parameters {
-        password(name: 'NEXUS_PASSWORD', defaultValue: '1234', description: 'Nexus repository password')
-    }
-    
     environment {
         DOCKER_IMAGE = "verademo:${BUILD_NUMBER}"
         DOCKER_LATEST = "verademo:latest"
