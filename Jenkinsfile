@@ -29,6 +29,29 @@ pipeline {
                 echo "Image: ${DOCKER_LATEST}"
             }
         }
+        
+        stage('Pre-Deployment Approval') {
+            steps {
+                script {
+                    input message: 'Approve deployment to production?', 
+                          ok: 'Deploy',
+                          submitter: 'admin,devops',
+                          parameters: [
+                              choice(name: 'DEPLOY_ENVIRONMENT', 
+                                     choices: ['Production', 'Staging'], 
+                                     description: 'Select environment to deploy')
+                          ]
+                }
+                echo 'Deployment approved by admin'
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                echo 'Deploying application...'
+                echo 'Application deployed successfully'
+            }
+        }
     }
     
     post {
