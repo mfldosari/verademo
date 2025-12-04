@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     parameters {
-        password(name: 'NEXUS_PASSWORD', defaultValue: '', description: 'Nexus repository password')
+        password(name: 'NEXUS_PASSWORD', defaultValue: '1234', description: 'Nexus repository password')
     }
     
     environment {
@@ -45,7 +45,7 @@ pipeline {
                 echo 'Pushing image to Nexus repository...'
                 script {
                     sh """
-                        docker login ${NEXUS_REGISTRY} -u admin -p ${params.NEXUS_PASSWORD}
+                        echo '${params.NEXUS_PASSWORD}' | docker login ${NEXUS_REGISTRY} -u admin --password-stdin
                         docker tag ${DOCKER_LATEST} ${NEXUS_IMAGE}
                         docker push ${NEXUS_IMAGE}
                     """
