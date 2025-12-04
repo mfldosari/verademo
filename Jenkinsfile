@@ -20,7 +20,7 @@ pipeline {
                 echo 'Building Docker image...'
                 echo "Building ${DOCKER_IMAGE}"
                 script {
-                    sh "docker build -t ${DOCKER_IMAGE} ."
+                    sh "docker build -f Dockerfile.simple -t ${DOCKER_IMAGE} ."
                     sh "docker tag ${DOCKER_IMAGE} ${DOCKER_LATEST}"
                 }
                 echo 'Docker image built successfully'
