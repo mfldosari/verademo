@@ -53,6 +53,19 @@ pipeline {
             }
         }
         
+        stage('Cleanup Local Images') {
+            steps {
+                echo 'Removing local Docker images to free up storage...'
+                script {
+                    sh '''
+                        docker rmi ${DOCKER_IMAGE} || true
+                        docker rmi ${DOCKER_LATEST} || true
+                    '''
+                }
+                echo 'Local images cleaned up'
+            }
+        }
+        
         stage('Pre-Deployment Approval') {
             steps {
                 script {
