@@ -10,6 +10,7 @@ pipeline {
         DOCKER_LATEST = "verademo:latest"
         NEXUS_REGISTRY = "10.43.158.166:8082"
         NEXUS_IMAGE = "${NEXUS_REGISTRY}/verademo:latest"
+        NEXUS_PASSWORD = "${params.NEXUS_PASSWORD}"
     }
     
     stages {
@@ -44,11 +45,11 @@ pipeline {
             steps {
                 echo 'Pushing image to Nexus repository...'
                 script {
-                    sh """
-                        echo '${params.NEXUS_PASSWORD}' | docker login ${NEXUS_REGISTRY} -u admin --password-stdin
+                    sh '''
+                        echo "${NEXUS_PASSWORD}" | docker login ${NEXUS_REGISTRY} -u admin --password-stdin
                         docker tag ${DOCKER_LATEST} ${NEXUS_IMAGE}
                         docker push ${NEXUS_IMAGE}
-                    """
+                    '''
                 }
                 echo 'Image pushed to Nexus successfully'
             }
