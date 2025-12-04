@@ -1,9 +1,15 @@
 pipeline {
     agent any
     
+    parameters {
+        password(name: 'NEXUS_PASSWORD', defaultValue: '', description: 'Nexus repository password')
+    }
+    
     environment {
         DOCKER_IMAGE = "verademo:${BUILD_NUMBER}"
         DOCKER_LATEST = "verademo:latest"
+        NEXUS_REGISTRY = "10.43.158.166:8082"
+        NEXUS_IMAGE = "${NEXUS_REGISTRY}/verademo:latest"
     }
     
     stages {
@@ -31,6 +37,20 @@ pipeline {
             steps {
                 echo 'Listing Docker images...'
                 sh 'docker images | grep verademo'
+            }
+        }
+        
+        stage('Push to Nexus') {
+            steps {
+                echo 'Pushing image to Nexus repository...'
+                script {
+                    sh """
+                        docker login ${NEXUS_REGISTRY} -u admin -p ${params.NEXUS_PASSWORD}
+                        docker tag ${DOCKER_LATEST} ${NEXUS_IMAGE}
+                        docker push ${NEXUS_IMAGE}
+                    """
+                }
+                echo 'Image pushed to Nexus successfully'
             }
         }
         
