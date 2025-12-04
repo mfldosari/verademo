@@ -10,6 +10,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out code from GitHub...'
+                checkout scm
                 echo 'Code checkout completed'
             }
         }
