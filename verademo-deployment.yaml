@@ -11,7 +11,7 @@ metadata:
   labels:
     app: verademo
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: verademo
@@ -20,9 +20,11 @@ spec:
       labels:
         app: verademo
     spec:
+      imagePullSecrets:
+      - name: dockerhub-secret
       containers:
       - name: verademo
-        image: mfldosari/verademo:latest
+        image: mfaldosari/verademo:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80
