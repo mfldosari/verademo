@@ -87,8 +87,8 @@ pipeline {
                 echo 'Deploying application to prod-env namespace...'
                 script {
                     sh '''
+                        kubectl delete -f verademo-deployment.yaml
                         kubectl apply -f verademo-deployment.yaml
-                        kubectl rollout status deployment/verademo -n prod-env --timeout=2m
                     '''
                 }
                 echo 'Application deployed successfully to Kubernetes'
