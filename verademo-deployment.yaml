@@ -23,7 +23,7 @@ spec:
       containers:
       - name: verademo
         image: verademo:latest
-        imagePullPolicy: Never
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
 ---
