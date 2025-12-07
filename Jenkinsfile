@@ -20,49 +20,64 @@ pipeline {
             }
         }
         
-        stage('Build Docker Image') {
+        stage('Build Docker Image with Kaniko') {
             steps {
-                echo 'Building Docker image...'
+                echo 'Building Docker image with Kaniko...'
                 echo "Building ${DOCKER_IMAGE}"
                 script {
-                    sh "docker build -f Dockerfile.simple -t ${DOCKER_IMAGE} -t ${DOCKER_LATEST} ."
+                    // Create Docker config secret for Kaniko
+                    sh """
+                        kubectl create secret generic docker-credentials \\
+                          --from-literal=username=${DOCKERHUB_USERNAME} \\
+                          --from-literal=password=${DOCKERHUB_PASSWORD} \\
+                          --namespace=jenkins \\
+                          --dry-run=client -o yaml | kubectl apply -f -
+                        
+                        # Create configmap with Docker credentials
+                        echo '{"auths":{"https://index.docker.io/v1/":{"auth":"'"\$(echo -n ${DOCKERHUB_USERNAME}:${DOCKERHUB_PASSWORD} | base64)"'"}}}' > /tmp/config.json
+                        kubectl create configmap kaniko-docker-config \\
+                          --from-file=/tmp/config.json \\
+                          --namespace=jenkins \\
+                          --dry-run=client -o yaml | kubectl apply -f -
+                        rm /tmp/config.json
+                    """
+                    
+                    // Run Kaniko build
+                    sh """
+                        kubectl run kaniko-build-${BUILD_NUMBER} \\
+                          --restart=Never \\
+                          --image=gcr.io/kaniko-project/executor:latest \\
+                          --namespace=jenkins \\
+                          --overrides='{
+                            "spec": {
+                              "containers": [{
+                                "name": "kaniko",
+                                "image": "gcr.io/kaniko-project/executor:latest",
+                                "args": [
+                                  "--context=git://github.com/mfldosari/verademo.git#refs/heads/main",
+                                  "--dockerfile=Dockerfile.simple",
+                                  "--destination=${DOCKER_IMAGE}",
+                                  "--destination=${DOCKER_LATEST}"
+                                ],
+                                "volumeMounts": [{
+                                  "name": "docker-config",
+                                  "mountPath": "/kaniko/.docker"
+                                }]
+                              }],
+                              "volumes": [{
+                                "name": "docker-config",
+                                "configMap": {
+                                  "name": "kaniko-docker-config"
+                                }
+                              }],
+                              "restartPolicy": "Never"
+                            }
+                          }' \\
+                          --attach=true \\
+                          --rm
+                    """
                 }
-                echo 'Docker image built successfully'
-            }
-        }
-        
-        stage('List Images') {
-            steps {
-                echo 'Listing Docker images...'
-                sh 'docker images | grep verademo'
-            }
-        }
-        
-        stage('Push to Docker Hub') {
-            steps {
-                echo 'Pushing image to Docker Hub...'
-                script {
-                    sh '''
-                        echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-                        docker push ${DOCKER_IMAGE}
-                        docker push ${DOCKER_LATEST}
-                        docker logout
-                    '''
-                }
-                echo 'Image pushed successfully to Docker Hub'
-            }
-        }
-        
-        stage('Cleanup Local Images') {
-            steps {
-                echo 'Removing local Docker images to free up storage...'
-                script {
-                    sh '''
-                        docker rmi ${DOCKER_IMAGE} || true
-                        docker rmi ${DOCKER_LATEST} || true
-                    '''
-                }
-                echo 'Local images cleaned up'
+                echo 'Docker image built and pushed successfully with Kaniko'
             }
         }
         
@@ -87,7 +102,6 @@ pipeline {
                 echo 'Deploying application to prod-env namespace...'
                 script {
                     sh '''
-                        kubectl delete -f verademo-deployment.yaml
                         kubectl apply -f verademo-deployment.yaml
                     '''
                 }
@@ -109,6 +123,13 @@ pipeline {
         }
         always {
             echo 'Pipeline execution completed.'
+            // Cleanup Kaniko resources
+            script {
+                sh """
+                    kubectl delete configmap kaniko-docker-config --namespace=jenkins --ignore-not-found=true
+                    kubectl delete secret docker-credentials --namespace=jenkins --ignore-not-found=true
+                """ 
+            }
         }
     }
 }
