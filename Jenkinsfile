@@ -42,7 +42,7 @@ pipeline {
                           --dry-run=client -o yaml | kubectl apply -f -
                         
                         # Create configmap with Docker credentials for custom registry
-                        echo '{"auths":{"${REGISTRY_URL}":{"auth":"'"\$(echo -n ${USERNAME}:${PASSWORD} | base64)"'"}}}' > /tmp/config.json
+                        echo '{"auths":{"${HOSTNAME}":{"auth":"'"\$(echo -n ${USERNAME}:${PASSWORD} | base64)"'"}}}' > /tmp/config.json
                         kubectl create configmap kaniko-docker-config \\
                           --from-file=/tmp/config.json \\
                           --namespace=jenkins \\
