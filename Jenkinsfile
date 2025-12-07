@@ -4,14 +4,15 @@ pipeline {
     parameters {
         string(name: 'REGISTRY_URL', defaultValue: 'https://index.docker.io/v1/', description: 'Registry URL (e.g., https://my-registry.com)')
         string(name: 'USERNAME', defaultValue: 'mfaldosari', description: 'Registry Username')
+        string(name: 'HOSTNAME', defaultValue: '', description: 'Registry Image Hostname')
         password(name: 'PASSWORD', defaultValue: '', description: 'Registry Password')
         string(name: 'DOCKERFILE', defaultValue: 'Dockerfile.simple', description: 'Dockerfile name (e.g., Dockerfile, Dockerfile.simple)')
     }
     
     environment {
         USERNAME = "${USERNAME}"
-        IMAGE = "${USERNAME}/verademo:${BUILD_NUMBER}"
-        _LATEST = "${USERNAME}/verademo:latest"
+        IMAGE = "${HOSTNAME}/verademo:${BUILD_NUMBER}"
+        _LATEST = "${HOSTNAME}/verademo:latest"
         // Convert any Git URL (GitHub, GitLab, Bitbucket, etc.) to git:// protocol
         GIT_REPO = "${env.GIT_URL.replaceAll('https://', 'git://').replaceAll('http://', 'git://')}"
         // Extract branch name from refs/remotes/origin/branch format
