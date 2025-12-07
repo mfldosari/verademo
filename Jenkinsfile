@@ -2,13 +2,19 @@ pipeline {
     agent any
     
     parameters {
-        password(name: 'DOCKERHUB_PASSWORD', defaultValue: '', description: 'Docker Hub Password')
+        password(name: 'PASSWORD', defaultValue: '', description: 'Registry Password')
+        string(name: 'REGISTRY_URL', defaultValue: 'https://index.docker.io/v1/', description: 'Registry URL (e.g., https://my-registry.com)')
+        string(name: 'USERNAME', defaultValue: 'mfaldosari', description: 'Registry Username')
+        string(name: 'DOCKERFILE', defaultValue: 'Dockerfile.simple', description: 'Dockerfile name (e.g., Dockerfile, Dockerfile.simple)')
     }
     
     environment {
-        DOCKERHUB_USERNAME = "mfaldosari"
-        DOCKER_IMAGE = "${DOCKERHUB_USERNAME}/verademo:${BUILD_NUMBER}"
-        DOCKER_LATEST = "${DOCKERHUB_USERNAME}/verademo:latest"
+        USERNAME = "${USERNAME}"
+        IMAGE = "${USERNAME}/verademo:${BUILD_NUMBER}"
+        _LATEST = "${USERNAME}/verademo:latest"
+        // Convert any Git URL (GitHub, GitLab, Bitbucket, etc.) to git:// protocol
+        GIT_REPO = "${env.GIT_URL.replaceAll('https://', 'git://').replaceAll('http://', 'git://')}"
+        GIT_BRANCH = "${env.GIT_BRANCH ?: 'main'}"
     }
     
     stages {
@@ -23,18 +29,18 @@ pipeline {
         stage('Build Docker Image with Kaniko') {
             steps {
                 echo 'Building Docker image with Kaniko...'
-                echo "Building ${DOCKER_IMAGE}"
+                echo "Building ${IMAGE}"
                 script {
-                    // Create Docker config secret for Kaniko
+                    // Create Docker config secret for Kaniko with custom registry
                     sh """
                         kubectl create secret generic docker-credentials \\
-                          --from-literal=username=${DOCKERHUB_USERNAME} \\
-                          --from-literal=password=${DOCKERHUB_PASSWORD} \\
+                          --from-literal=username=${USERNAME} \\
+                          --from-literal=password=${PASSWORD} \\
                           --namespace=jenkins \\
                           --dry-run=client -o yaml | kubectl apply -f -
                         
-                        # Create configmap with Docker credentials
-                        echo '{"auths":{"https://index.docker.io/v1/":{"auth":"'"\$(echo -n ${DOCKERHUB_USERNAME}:${DOCKERHUB_PASSWORD} | base64)"'"}}}' > /tmp/config.json
+                        # Create configmap with Docker credentials for custom registry
+                        echo '{"auths":{"${REGISTRY_URL}":{"auth":"'"\$(echo -n ${USERNAME}:${PASSWORD} | base64)"'"}}}' > /tmp/config.json
                         kubectl create configmap kaniko-docker-config \\
                           --from-file=/tmp/config.json \\
                           --namespace=jenkins \\
@@ -54,10 +60,11 @@ pipeline {
                                 "name": "kaniko",
                                 "image": "gcr.io/kaniko-project/executor:latest",
                                 "args": [
-                                  "--context=git://github.com/mfldosari/verademo.git#refs/heads/main",
-                                  "--dockerfile=Dockerfile.simple",
-                                  "--destination=${DOCKER_IMAGE}",
-                                  "--destination=${DOCKER_LATEST}"
+                                  "--context=${GIT_REPO}#refs/heads/${GIT_BRANCH}",
+                                  "--dockerfile=${DOCKERFILE}",
+                                  "--destination=${IMAGE}",
+                                  "--destination=${_LATEST}",
+                                  "--skip-tls-verify"
                                 ],
                                 "volumeMounts": [{
                                   "name": "docker-config",
@@ -113,8 +120,8 @@ pipeline {
     post {
         success {
             echo "Build completed successfully!"
-            echo "Docker image: ${DOCKER_IMAGE}"
-            echo "Docker Hub image: ${DOCKER_LATEST}"
+            echo "Docker image: ${IMAGE}"
+            echo "Docker Hub image: ${_LATEST}"
             echo "Application deployed to prod-env!"
             echo "Access the application at: http://<node-ip>:30100"
         }
