@@ -7,6 +7,7 @@ pipeline {
         string(name: 'HOSTNAME', defaultValue: '', description: 'Registry Image Hostname')
         password(name: 'PASSWORD', defaultValue: '', description: 'Registry Password')
         string(name: 'DOCKERFILE', defaultValue: 'Dockerfile.simple', description: 'Dockerfile name (e.g., Dockerfile, Dockerfile.simple)')
+        string(name: 'GIT_BRANCH_NAME', defaultValue: '', description: 'Git branch name to build from (leave empty to use SCM configuration)')
     }
     
     environment {
@@ -15,8 +16,8 @@ pipeline {
         _LATEST = "${HOSTNAME}/verademo:latest"
         // Convert any Git URL (GitHub, GitLab, Bitbucket, etc.) to git:// protocol
         GIT_REPO = "${env.GIT_URL.replaceAll('https://', 'git://').replaceAll('http://', 'git://')}"
-        // Extract branch name from refs/remotes/origin/branch format
-        GIT_BRANCH = "${env.GIT_BRANCH ? env.GIT_BRANCH.replaceAll('origin/', '') : 'main'}"
+        // Use parameter if provided, otherwise extract from SCM branch
+        GIT_BRANCH = "${params.GIT_BRANCH_NAME ?: (env.GIT_BRANCH ? env.GIT_BRANCH.replaceAll('origin/', '') : 'main')}"
     }
     
     stages {
