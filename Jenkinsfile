@@ -34,17 +34,17 @@ pipeline {
                 echo 'Building Docker image with Kaniko...'
                 echo "Building ${IMAGE}"
                 script {
-                    // Create Docker config secret for Kaniko with custom registry
+                    // Create config secret for Kaniko with custom registry
                     sh """
-                        kubectl create secret generic docker-credentials \\
+                        kubectl create secret generic registry-credentials \\
                           --from-literal=username=${USERNAME} \\
                           --from-literal=password=${PASSWORD} \\
                           --namespace=jenkins \\
                           --dry-run=client -o yaml | kubectl apply -f -
                         
-                        # Create configmap with Docker credentials for custom registry
+                        # Create configmap with registry credentials for custom registry
                         echo '{"auths":{"${HOSTNAME}":{"auth":"'"\$(echo -n ${USERNAME}:${PASSWORD} | base64)"'"}}}' > /tmp/config.json
-                        kubectl create configmap kaniko-docker-config \\
+                        kubectl create configmap kaniko-registry-config \\
                           --from-file=/tmp/config.json \\
                           --namespace=jenkins \\
                           --dry-run=client -o yaml | kubectl apply -f -
@@ -77,7 +77,7 @@ pipeline {
                               "volumes": [{
                                 "name": "docker-config",
                                 "configMap": {
-                                  "name": "kaniko-docker-config"
+                                  "name": "kaniko-registry-config"
                                 }
                               }],
                               "restartPolicy": "Never"
@@ -140,8 +140,8 @@ pipeline {
             // Cleanup Kaniko resources
             script {
                 sh """
-                    kubectl delete configmap kaniko-docker-config --namespace=jenkins --ignore-not-found=true
-                    kubectl delete secret docker-credentials --namespace=jenkins --ignore-not-found=true
+                    kubectl delete configmap kaniko-registry-config --namespace=jenkins --ignore-not-found=true
+                    kubectl delete secret registry-credentials --namespace=jenkins --ignore-not-found=true
                 """ 
             }
         }
