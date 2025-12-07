@@ -2,18 +2,25 @@ pipeline {
     agent any
     
     parameters {
-        string(name: 'REGISTRY_URL', description: 'Registry URL (e.g., https://my-registry.com)')
-        string(name: 'USERNAME', description: 'Registry Username')
-        string(name: 'HOSTNAME', description: 'Registry Image Hostname')
-        password(name: 'PASSWORD', description: 'Registry Password')
-        string(name: 'DOCKERFILE', description: 'Dockerfile name (e.g., Dockerfile, Dockerfile.simple)')
-        string(name: 'GIT_BRANCH_NAME', description: 'Git branch name to build from (leave empty to use SCM configuration)')
+        string(name: 'GIT_BRANCH_NAME', defaultValue: '', description: 'Git branch name to build from (leave empty to use SCM configuration)')
     }
     
     environment {
-        USERNAME = "${USERNAME}"
+        // Docker Registry credentials from Jenkins
+        REGISTRY_CREDS = credentials('registry-creds')
+        USERNAME = "${REGISTRY_CREDS_USR}"
+        PASSWORD = "${REGISTRY_CREDS_PSW}"
+        
+        // Registry URL and Hostname from Jenkins credentials
+        REGISTRY_URL = credentials('registry-url')
+        HOSTNAME = credentials('registry-hostname')
+        
+        // Dockerfile name from Jenkins credentials
+        DOCKERFILE = credentials('dockerfile-name')
+        
         IMAGE = "${HOSTNAME}/verademo:${BUILD_NUMBER}"
         _LATEST = "${HOSTNAME}/verademo:latest"
+        
         // Convert any Git URL (GitHub, GitLab, Bitbucket, etc.) to git:// protocol
         GIT_REPO = "${env.GIT_URL.replaceAll('https://', 'git://').replaceAll('http://', 'git://')}"
         // Use parameter if provided, otherwise extract from SCM branch
