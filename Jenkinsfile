@@ -14,7 +14,8 @@ pipeline {
         _LATEST = "${USERNAME}/verademo:latest"
         // Convert any Git URL (GitHub, GitLab, Bitbucket, etc.) to git:// protocol
         GIT_REPO = "${env.GIT_URL.replaceAll('https://', 'git://').replaceAll('http://', 'git://')}"
-        GIT_BRANCH = "${env.GIT_BRANCH ?: 'main'}"
+        // Extract branch name from refs/remotes/origin/branch format
+        GIT_BRANCH = "${env.GIT_BRANCH ? env.GIT_BRANCH.replaceAll('origin/', '') : 'main'}"
     }
     
     stages {
