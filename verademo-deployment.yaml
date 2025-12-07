@@ -20,11 +20,9 @@ spec:
       labels:
         app: verademo
     spec:
-      imagePullSecrets:
-      - name: dockerhub-secret
       containers:
       - name: verademo
-        image: mfaldosari/verademo:latest
+        image: registry/image:tag
         imagePullPolicy: Always
         ports:
         - containerPort: 80
