@@ -93,7 +93,7 @@ pipeline {
         stage('Pre-Deployment Approval') {
             steps {
                 script {
-                    input message: 'Approve deployment to production?', 
+                    env.DEPLOY_ENV = input message: 'Approve deployment to production?', 
                           ok: 'Deploy',
                           submitter: 'admin,devops',
                           parameters: [
@@ -102,18 +102,21 @@ pipeline {
                                      description: 'Select environment to deploy')
                           ]
                 }
-                echo 'Deployment approved by admin'
+                echo "Deployment approved for ${env.DEPLOY_ENV}"
             }
         }
         
         stage('Deploy to Kubernetes') {
+            when {
+                expression { env.DEPLOY_ENV == 'Production' }
+            }
             steps {
                 echo 'Deploying application to prod-env namespace...'
                 script {
-                    sh '''
+                    sh """
                         kubectl apply -f verademo-deployment.yaml
-                        
-                    '''
+                        kubectl set image deployment/verademo verademo=${IMAGE} -n prod-env
+                    """
                 }
                 echo 'Application deployed successfully to Kubernetes'
             }
