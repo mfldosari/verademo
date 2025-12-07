@@ -2,12 +2,12 @@ pipeline {
     agent any
     
     parameters {
-        string(name: 'REGISTRY_URL', defaultValue: 'https://index.docker.io/v1/', description: 'Registry URL (e.g., https://my-registry.com)')
-        string(name: 'USERNAME', defaultValue: 'mfaldosari', description: 'Registry Username')
-        string(name: 'HOSTNAME', defaultValue: '', description: 'Registry Image Hostname')
-        password(name: 'PASSWORD', defaultValue: '', description: 'Registry Password')
-        string(name: 'DOCKERFILE', defaultValue: 'Dockerfile.simple', description: 'Dockerfile name (e.g., Dockerfile, Dockerfile.simple)')
-        string(name: 'GIT_BRANCH_NAME', defaultValue: '', description: 'Git branch name to build from (leave empty to use SCM configuration)')
+        string(name: 'REGISTRY_URL', description: 'Registry URL (e.g., https://my-registry.com)')
+        string(name: 'USERNAME', description: 'Registry Username')
+        string(name: 'HOSTNAME', description: 'Registry Image Hostname')
+        password(name: 'PASSWORD', description: 'Registry Password')
+        string(name: 'DOCKERFILE', description: 'Dockerfile name (e.g., Dockerfile, Dockerfile.simple)')
+        string(name: 'GIT_BRANCH_NAME', description: 'Git branch name to build from (leave empty to use SCM configuration)')
     }
     
     environment {
@@ -129,8 +129,6 @@ pipeline {
             echo "Build completed successfully!"
             echo "Docker image: ${IMAGE}"
             echo "Docker Hub image: ${_LATEST}"
-            echo "Application deployed to prod-env!"
-            echo "Access the application at: http://<node-ip>:30100"
         }
         failure {
             echo 'Build failed!'
