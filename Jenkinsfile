@@ -2,9 +2,9 @@ pipeline {
     agent any
     
     parameters {
-        password(name: 'PASSWORD', defaultValue: '', description: 'Registry Password')
         string(name: 'REGISTRY_URL', defaultValue: 'https://index.docker.io/v1/', description: 'Registry URL (e.g., https://my-registry.com)')
         string(name: 'USERNAME', defaultValue: 'mfaldosari', description: 'Registry Username')
+        password(name: 'PASSWORD', defaultValue: '', description: 'Registry Password')
         string(name: 'DOCKERFILE', defaultValue: 'Dockerfile.simple', description: 'Dockerfile name (e.g., Dockerfile, Dockerfile.simple)')
     }
     
