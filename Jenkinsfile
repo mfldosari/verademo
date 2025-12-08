@@ -175,7 +175,7 @@ metadata:
 spec:
   type: NodePort
   selector:
-    app: ${APPLICATION_NAME}
+    app: ${APPLICATION_NAME.toLowerCase()}
   ports:
   - name: http
     port: 80
