@@ -112,7 +112,7 @@ pipeline {
             }
         }
         // Stage three - Admin or DevOps Approval for Deployment
-        stage("Pre-Deployment Approval of ${APPLICATION_NAME}") {
+        stage('Pre-Deployment Approval') {
             steps {
                 script {
                     env.DEPLOY_ENV = input message: 'Approve deployment to production?', 
@@ -129,7 +129,7 @@ pipeline {
         }
         
         // Stage four A - Deploy to Kubernetes cluster
-        stage("Production Deployment of ${APPLICATION_NAME}") {
+        stage('Production Deployment') {
             when {
                 expression { env.DEPLOY_ENV == 'Production' }
             }
@@ -217,7 +217,7 @@ EOF
         }
         
         // Stage four B - Deploy to development environment
-        stage("Development Deployment of ${APPLICATION_NAME}") {
+        stage('Development Deployment') {
             when {
                 expression { env.DEPLOY_ENV == 'Development'}
             }
@@ -228,7 +228,7 @@ EOF
         }
         
         // Stage four C - Deploy to staging environment
-        stage("Staging Deployment of ${APPLICATION_NAME}") {
+        stage('Staging Deployment') {
             when {
                 expression { env.DEPLOY_ENV == 'Staging'}
             }
