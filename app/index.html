@@ -3,61 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VeraDemo - CI/CD Test</title>
+    <title>VeraDemo - CI/CD Pipeline Demo</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            padding: 20px;
         }
         .container {
             background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
             text-align: center;
+        }
+        .logo {
+            font-size: 60px;
+            margin-bottom: 20px;
         }
         h1 {
             color: #667eea;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 36px;
         }
         .status {
-            color: #28a745;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
             font-size: 24px;
             font-weight: bold;
+            padding: 15px 30px;
+            border-radius: 50px;
+            margin: 30px 0;
+            display: inline-block;
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+        .description {
+            color: #666;
+            font-size: 18px;
+            line-height: 1.6;
             margin: 20px 0;
         }
-        .info {
-            color: #666;
-            margin-top: 20px;
+        .tech-stack {
+            margin: 30px 0;
         }
         .badge {
             display: inline-block;
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            margin: 5px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            margin: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            transition: transform 0.2s;
+        }
+        .badge:hover {
+            transform: translateY(-2px);
+        }
+        .info-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            border-left: 4px solid #667eea;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            color: #999;
+            font-weight: 600;
+        }
+        .info-value {
+            color: #333;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            color: #999;
+            font-size: 14px;
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 VeraDemo Application</h1>
-        <div class="status">✅ CI/CD Pipeline Working!</div>
-        <p>This application was deployed via Jenkins CI/CD pipeline</p>
-        <div class="info">
-            <div class="badge">Docker Hub</div>
-            <div class="badge">Kubernetes</div>
-            <div class="badge">Jenkins</div>
+        <div class="logo">🚀</div>
+        <h1>VeraDemo Application</h1>
+        <p class="description">A demonstration of automated CI/CD deployment using Jenkins, Kubernetes, and Docker</p>
+        
+        <div class="status pulse">✅ Successfully Deployed!</div>
+        
+        <div class="tech-stack">
+            <h3 style="color: #666; margin-bottom: 15px;">Technology Stack</h3>
+            <span class="badge">🐳 Docker</span>
+            <span class="badge">☸️ Kubernetes</span>
+            <span class="badge">⚙️ Jenkins</span>
+            <span class="badge">☁️ Kaniko</span>
+            <span class="badge">📦 Nexus</span>
         </div>
-        <p style="margin-top: 30px; color: #999; font-size: 14px;">
-            Build: <strong>Latest</strong> | Namespace: <strong>prod-env</strong>
-        </p>
+        
+        <div class="info-box">
+            <div class="info-item">
+                <span class="info-label">Build Status:</span>
+                <span class="info-value" style="color: #28a745;">Active</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Environment:</span>
+                <span class="info-value">Production</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Deployment:</span>
+                <span class="info-value">Automated CI/CD</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Container Runtime:</span>
+                <span class="info-value">Kubernetes</span>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>🔄 This page updates automatically with each deployment</p>
+            <p style="margin-top: 10px;">Powered by Jenkins Pipeline • Built with ❤️</p>
+        </div>
     </div>
 </body>
 </html>
