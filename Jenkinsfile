@@ -8,6 +8,7 @@ pipeline {
     // Also, make sure that the deployment YAML file (verademo-deployment.yaml) is present in the repository.
     // you can customize the deployment YAML file or add your own as per your application's requirements but include the file in the script deployment step to take effect.
     // For security, Jenkins deployment should have access to create secrets and configmaps in the jenkins namespace and enough permissions on target namespaces to deploy applications.
+    // So create appropriate RBAC roles and role bindings in your Kubernetes cluster for Jenkins service account and link them to the namespaces where deployments will occur.
 
     parameters {
         string(name: 'GIT_BRANCH_NAME', defaultValue: 'main', description: 'Git branch name to build from (leave empty to use SCM configuration)')
