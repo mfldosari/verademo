@@ -183,34 +183,6 @@ spec:
     nodePort: ${NODE_PORT}
 EOF
                     """
-                    
-                    sh """
-                        cat <<EOF | kubectl apply -f -
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: jenkins-role-${env.DEPLOY_ENV.toLowerCase()}
-  namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
-rules:
-- apiGroups: ["", "apps"]
-  resources: ["deployments", "services", "pods", "replicasets", "secrets", "configmaps"]
-  verbs: ["get", "list", "create", "update", "patch", "delete", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: jenkins-role-binding-${env.DEPLOY_ENV.toLowerCase()}
-  namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
-subjects:
-- kind: ServiceAccount
-  name: jenkins
-  namespace: jenkins
-roleRef:
-  kind: Role
-  name: jenkins-role-${env.DEPLOY_ENV.toLowerCase()}
-  apiGroup: rbac.authorization.k8s.io
-EOF
-                    """
                 }
                 echo "Application ${APPLICATION_NAME} deployed successfully to ${env.DEPLOY_ENV}"
             }
