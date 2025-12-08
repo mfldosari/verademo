@@ -1,6 +1,10 @@
 pipeline {
     agent any
-    
+    // this pipline will require the following Jenkins credentials:
+    // 1. registry-creds: Username and Password for Registry
+    // 3. registry-hostname: Hostname of the Registry
+    // 4. dockerfile-name: Name of the Dockerfile to use for building the image
+
     parameters {
         string(name: 'GIT_BRANCH_NAME', defaultValue: 'main', description: 'Git branch name to build from (leave empty to use SCM configuration)')
     }
@@ -11,8 +15,7 @@ pipeline {
         USERNAME = "${REGISTRY_CREDS_USR}"
         PASSWORD = "${REGISTRY_CREDS_PSW}"
         
-        // Registry URL and Hostname from Jenkins credentials
-        REGISTRY_URL = credentials('registry-url')
+        //Hostname from Jenkins credentials
         HOSTNAME = credentials('registry-hostname')
         
         // Dockerfile name from Jenkins credentials
