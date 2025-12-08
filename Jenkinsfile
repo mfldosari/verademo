@@ -1,9 +1,13 @@
 pipeline {
     agent any
-    // this pipline will require the following Jenkins credentials:
+    // This pipeline will require the following Jenkins credentials:
     // 1. registry-creds: Username and Password for Registry
-    // 3. registry-hostname: Hostname of the Registry
-    // 4. dockerfile-name: Name of the Dockerfile to use for building the image
+    // 2. registry-hostname: Hostname of the Registry
+    // 3. dockerfile-name: Name of the Dockerfile to use for building the image
+    // Make sure to set these up in Jenkins before running the pipeline.
+    // Also, make sure that the deployment YAML file (verademo-deployment.yaml) is present in the repository.
+    // you can customize the deployment YAML file or add your own as per your application's requirements but include the file in the script deployment step to take effect.
+    // For security, Jenkins deployment should have access to create secrets and configmaps in the jenkins namespace and enough permissions on target namespaces to deploy applications.
 
     parameters {
         string(name: 'GIT_BRANCH_NAME', defaultValue: 'main', description: 'Git branch name to build from (leave empty to use SCM configuration)')
@@ -31,6 +35,7 @@ pipeline {
     }
     
     stages {
+        // Stage one - Checkout code from GitHub
         stage('Checkout') {
             steps {
                 echo 'Checking out code from GitHub...'
@@ -38,7 +43,7 @@ pipeline {
                 echo 'Code checkout completed'
             }
         }
-        
+        // Stage two - Build Docker image using Kaniko
         stage('Build Docker Image with Kaniko') {
             steps {
                 echo 'Building Docker image with Kaniko...'
@@ -100,7 +105,7 @@ pipeline {
                 echo 'Docker image built and pushed successfully with Kaniko'
             }
         }
-        
+        // Stage three - Admin or DevOps Approval for Deployment
         stage('Pre-Deployment Approval') {
             steps {
                 script {
@@ -109,7 +114,7 @@ pipeline {
                           submitter: 'admin,devops',
                           parameters: [
                               choice(name: 'DEPLOY_ENVIRONMENT', 
-                                     choices: ['Production', 'development', 'staging'], 
+                                     choices: ['Production', 'Development', 'Staging'], 
                                      description: 'Select environment to deploy')
                           ]
                 }
@@ -117,6 +122,7 @@ pipeline {
             }
         }
         
+        // Stage four A - Deploy to Kubernetes cluster
         stage('Deploy to Kubernetes') {
             when {
                 expression { env.DEPLOY_ENV == 'Production' }
@@ -132,9 +138,32 @@ pipeline {
                 echo 'Application deployed successfully to Kubernetes'
             }
         }
+        
+        // Stage four B - Deploy to development environment
+        stage('Deploy to Development') {
+            when {
+                expression { env.DEPLOY_ENV == 'Development'}
+            }
+            steps {
+                echo 'Deploying application to ${env.DEPLOY_ENV} namespace...'
+                echo 'Application deployed successfully to ${env.DEPLOY_ENV}'
+            }
+        }
+        
+        // Stage four C - Deploy to staging environment
+        stage('Deploy to Staging') {
+            when {
+                expression { env.DEPLOY_ENV == 'Staging'}
+            }
+            steps {
+                echo 'Deploying application to ${env.DEPLOY_ENV} namespace...'
+                echo 'Application deployed successfully to ${env.DEPLOY_ENV}'
+            }
+        }
     }
-    
+    // Post actions
     post {
+        // Notify on success or failure
         success {
             echo "Build completed successfully!"
             echo "Docker image: ${IMAGE}"
@@ -154,4 +183,5 @@ pipeline {
             }
         }
     }
+
 }
