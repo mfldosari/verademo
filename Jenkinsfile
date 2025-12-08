@@ -14,6 +14,9 @@ pipeline {
     }
     
     environment {
+        // Application name
+        APPLICATION_NAME = 'verademo'
+
         // Docker Registry credentials from Jenkins
         REGISTRY_CREDS = credentials('registry-creds')
         USERNAME = "${REGISTRY_CREDS_USR}"
@@ -25,8 +28,8 @@ pipeline {
         // Dockerfile name from Jenkins credentials
         DOCKERFILE = credentials('dockerfile-name')
         
-        IMAGE = "${HOSTNAME}/verademo:${BUILD_NUMBER}"
-        _LATEST = "${HOSTNAME}/verademo:latest"
+        IMAGE = "${HOSTNAME}/${APPLICATION_NAME}:${BUILD_NUMBER}"
+        _LATEST = "${HOSTNAME}/${APPLICATION_NAME}:latest"
         
         // Convert any Git URL (GitHub, GitLab, Bitbucket, etc.) to git:// protocol
         GIT_REPO = "${env.GIT_URL.replaceAll('https://', 'git://').replaceAll('http://', 'git://')}"
@@ -106,7 +109,7 @@ pipeline {
             }
         }
         // Stage three - Admin or DevOps Approval for Deployment
-        stage('Pre-Deployment Approval') {
+        stage("Pre-Deployment Approval of ${APPLICATION_NAME}") {
             steps {
                 script {
                     env.DEPLOY_ENV = input message: 'Approve deployment to production?', 
@@ -118,12 +121,12 @@ pipeline {
                                      description: 'Select environment to deploy')
                           ]
                 }
-                echo "Deployment approved for ${env.DEPLOY_ENV}"
+                echo "${APPLICATION_NAME} Deployment approved to ${env.DEPLOY_ENV}"
             }
         }
         
         // Stage four A - Deploy to Kubernetes cluster
-        stage('Deploy to Kubernetes') {
+        stage("Production Deployment of ${APPLICATION_NAME}") {
             when {
                 expression { env.DEPLOY_ENV == 'Production' }
             }
@@ -135,29 +138,29 @@ pipeline {
                         kubectl set image deployment/verademo verademo=${IMAGE} -n prod-env
                     """
                 }
-                echo 'Application deployed successfully to Kubernetes'
+                echo "${APPLICATION_NAME} deployed successfully to Kubernetes"
             }
         }
         
         // Stage four B - Deploy to development environment
-        stage('Deploy to Development') {
+        stage("Development Deployment of ${APPLICATION_NAME}") {
             when {
                 expression { env.DEPLOY_ENV == 'Development'}
             }
             steps {
-                echo "Deploying application to ${env.DEPLOY_ENV} namespace..."
-                echo "Application deployed successfully to ${env.DEPLOY_ENV}"
+                echo "Deploying ${APPLICATION_NAME} to ${env.DEPLOY_ENV} namespace..."
+                echo "${APPLICATION_NAME} deployed successfully to ${env.DEPLOY_ENV}"
             }
         }
         
         // Stage four C - Deploy to staging environment
-        stage('Deploy to Staging') {
+        stage("Staging Deployment of ${APPLICATION_NAME}") {
             when {
                 expression { env.DEPLOY_ENV == 'Staging'}
             }
             steps {
-                echo "Deploying application to ${env.DEPLOY_ENV} namespace..."
-                echo "Application deployed successfully to ${env.DEPLOY_ENV}"
+                echo "Deploying ${APPLICATION_NAME} to ${env.DEPLOY_ENV} namespace..."
+                echo "${APPLICATION_NAME} deployed successfully to ${env.DEPLOY_ENV}"
             }
         }
     }
