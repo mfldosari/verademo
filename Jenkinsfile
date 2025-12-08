@@ -128,7 +128,7 @@ pipeline {
                 expression { env.DEPLOY_ENV == 'Production' }
             }
             steps {
-                echo 'Deploying application to prod-env namespace...'
+                echo "Deploying application to ${env.DEPLOY_ENV} namespace..."
                 script {
                     sh """
                         kubectl apply -f verademo-deployment.yaml
@@ -145,8 +145,8 @@ pipeline {
                 expression { env.DEPLOY_ENV == 'Development'}
             }
             steps {
-                echo 'Deploying application to ${env.DEPLOY_ENV} namespace...'
-                echo 'Application deployed successfully to ${env.DEPLOY_ENV}'
+                echo "Deploying application to ${env.DEPLOY_ENV} namespace..."
+                echo "Application deployed successfully to ${env.DEPLOY_ENV}"
             }
         }
         
@@ -156,8 +156,8 @@ pipeline {
                 expression { env.DEPLOY_ENV == 'Staging'}
             }
             steps {
-                echo 'Deploying application to ${env.DEPLOY_ENV} namespace...'
-                echo 'Application deployed successfully to ${env.DEPLOY_ENV}'
+                echo "Deploying application to ${env.DEPLOY_ENV} namespace..."
+                echo "Application deployed successfully to ${env.DEPLOY_ENV}"
             }
         }
     }
