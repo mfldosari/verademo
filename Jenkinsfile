@@ -166,7 +166,10 @@ spec:
         image: ${IMAGE}
         imagePullPolicy: Always
         ports:
-        - containerPort: 80
+        - containerPort: 8080
+        env:
+        - name: MYSQL_DATABASE
+          value: "blab"
 ---
 apiVersion: v1
 kind: Service
@@ -179,8 +182,8 @@ spec:
     app: ${APPLICATION_NAME.toLowerCase()}
   ports:
   - name: http
-    port: 80
-    targetPort: 80
+    port: 8080
+    targetPort: 8080
     nodePort: ${NODE_PORT}
 EOF
                     """
