@@ -1,5 +1,6 @@
 pipeline {
     agent any
+
     
     parameters {
         string(name: 'GIT_BRANCH_NAME', defaultValue: 'main', description: 'Git branch name to build from (leave empty to use SCM configuration)')
