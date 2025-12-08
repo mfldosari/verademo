@@ -215,9 +215,50 @@ EOF
     post {
         // Notify on success or failure
         success {
-            echo "Build completed successfully!"
-            echo "Docker image: ${IMAGE}"
-            echo "Docker Hub image: ${_LATEST}"
+            script {
+                echo "Build completed successfully!"
+                echo "Docker image: ${IMAGE}"
+                echo "Docker Hub image: ${_LATEST}"
+                echo "=================================================="
+                echo "Deployment Summary for ${env.DEPLOY_ENV} Environment"
+                echo "=================================================="
+                
+                // Get namespace based on deployment
+                def namespace = "${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}"
+                
+                sh """
+                    echo "\n=== NAMESPACE INFO ==="
+                    kubectl get namespace ${namespace}
+                    
+                    echo "\n=== DEPLOYMENTS ==="
+                    kubectl get deployments -n ${namespace}
+                    
+                    echo "\n=== PODS ==="
+                    kubectl get pods -n ${namespace} -o wide
+                    
+                    echo "\n=== SERVICES ==="
+                    kubectl get services -n ${namespace}
+                    
+                    echo "\n=== REPLICASETS ==="
+                    kubectl get replicasets -n ${namespace}
+                    
+                    echo "\n=== ENDPOINTS ==="
+                    kubectl get endpoints -n ${namespace}
+                    
+                    echo "\n=== POD DETAILS ==="
+                    kubectl describe pods -n ${namespace}
+                    
+                    echo "\n=== SERVICE DETAILS ==="
+                    kubectl describe services -n ${namespace}
+                    
+                    echo "\n=== DEPLOYMENT ROLLOUT STATUS ==="
+                    kubectl rollout status deployment/${APPLICATION_NAME.toLowerCase()} -n ${namespace}
+                """
+                
+                echo "=================================================="
+                echo "Access your application at: http://<node-ip>:${NODE_PORT}"
+                echo "=================================================="
+            }
         }
         failure {
             echo 'Build failed!'
