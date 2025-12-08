@@ -17,6 +17,9 @@ pipeline {
         // Application name
         APPLICATION_NAME = 'verademo'
 
+        // Node Port for the service
+        NODE_PORT = '30100'
+
         // Docker Registry credentials from Jenkins
         REGISTRY_CREDS = credentials('registry-creds')
         USERNAME = "${REGISTRY_CREDS_USR}"
@@ -134,11 +137,82 @@ pipeline {
                 echo "Deploying application to ${env.DEPLOY_ENV} namespace..."
                 script {
                     sh """
-                        kubectl apply -f verademo-deployment.yaml
-                        kubectl set image deployment/verademo verademo=${IMAGE} -n prod-env
+                        cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${env.DEPLOY_ENV}-${APPLICATION_NAME}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APPLICATION_NAME}
+  namespace: ${env.DEPLOY_ENV}-${APPLICATION_NAME}
+  labels:
+    app: ${APPLICATION_NAME}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${APPLICATION_NAME}
+  template:
+    metadata:
+      labels:
+        app: ${APPLICATION_NAME}
+    spec:
+      containers:
+      - name: ${APPLICATION_NAME}
+        image: ${IMAGE}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APPLICATION_NAME}-service
+  namespace: ${env.DEPLOY_ENV}-${APPLICATION_NAME}
+spec:
+  type: NodePort
+  selector:
+    app: ${APPLICATION_NAME}
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    nodePort: ${NODE_PORT}
+EOF
+                    """
+                    
+                    sh """
+                        cat <<EOF | kubectl apply -f -
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins-role-${env.DEPLOY_ENV}
+  namespace: ${env.DEPLOY_ENV}-${APPLICATION_NAME}
+rules:
+- apiGroups: ["", "apps"]
+  resources: ["deployments", "services", "pods", "replicasets", "secrets", "configmaps"]
+  verbs: ["get", "list", "create", "update", "patch", "delete", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-role-binding-${env.DEPLOY_ENV}
+  namespace: ${env.DEPLOY_ENV}-${APPLICATION_NAME}
+subjects:
+- kind: ServiceAccount
+  name: jenkins
+  namespace: jenkins
+roleRef:
+  kind: Role
+  name: jenkins-role-${env.DEPLOY_ENV}
+  apiGroup: rbac.authorization.k8s.io
+EOF
                     """
                 }
-                echo "${APPLICATION_NAME} deployed successfully to Kubernetes"
+                echo "Application ${APPLICATION_NAME} deployed successfully to ${env.DEPLOY_ENV}"
             }
         }
         
