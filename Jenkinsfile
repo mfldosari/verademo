@@ -20,6 +20,10 @@ pipeline {
 
         // Node Port for the service
         NODE_PORT = '30100'
+        
+        // Use pre-built VeraDemo image from Docker Hub
+        USE_PREBUILT_IMAGE = 'true'
+        PREBUILT_IMAGE = 'antfie/verademo:latest'
 
         // Docker Registry credentials from Jenkins
         REGISTRY_CREDS = credentials('registry-creds')
@@ -52,6 +56,9 @@ pipeline {
         }
         // Stage two - Build Docker image using Kaniko
         stage('Build Docker Image with Kaniko') {
+            when {
+                expression { USE_PREBUILT_IMAGE != 'true' }
+            }
             steps {
                 echo 'Building Docker image with Kaniko...'
                 echo "Building ${IMAGE}"
@@ -163,7 +170,7 @@ spec:
     spec:
       containers:
       - name: ${APPLICATION_NAME.toLowerCase()}
-        image: ${IMAGE}
+        image: ${USE_PREBUILT_IMAGE == 'true' ? PREBUILT_IMAGE : IMAGE}
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
