@@ -141,27 +141,27 @@ pipeline {
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ${env.DEPLOY_ENV}-${APPLICATION_NAME}
+  name: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${APPLICATION_NAME}
-  namespace: ${env.DEPLOY_ENV}-${APPLICATION_NAME}
+  name: ${APPLICATION_NAME.toLowerCase()}
+  namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
   labels:
-    app: ${APPLICATION_NAME}
+    app: ${APPLICATION_NAME.toLowerCase()}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ${APPLICATION_NAME}
+      app: ${APPLICATION_NAME.toLowerCase()}
   template:
     metadata:
       labels:
-        app: ${APPLICATION_NAME}
+        app: ${APPLICATION_NAME.toLowerCase()}
     spec:
       containers:
-      - name: ${APPLICATION_NAME}
+      - name: ${APPLICATION_NAME.toLowerCase()}
         image: ${IMAGE}
         imagePullPolicy: Always
         ports:
@@ -170,8 +170,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ${APPLICATION_NAME}-service
-  namespace: ${env.DEPLOY_ENV}-${APPLICATION_NAME}
+  name: ${APPLICATION_NAME.toLowerCase()}-service
+  namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
 spec:
   type: NodePort
   selector:
@@ -189,8 +189,8 @@ EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: jenkins-role-${env.DEPLOY_ENV}
-  namespace: ${env.DEPLOY_ENV}-${APPLICATION_NAME}
+  name: jenkins-role-${env.DEPLOY_ENV.toLowerCase()}
+  namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
 rules:
 - apiGroups: ["", "apps"]
   resources: ["deployments", "services", "pods", "replicasets", "secrets", "configmaps"]
@@ -199,15 +199,15 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: jenkins-role-binding-${env.DEPLOY_ENV}
-  namespace: ${env.DEPLOY_ENV}-${APPLICATION_NAME}
+  name: jenkins-role-binding-${env.DEPLOY_ENV.toLowerCase()}
+  namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
 subjects:
 - kind: ServiceAccount
   name: jenkins
   namespace: jenkins
 roleRef:
   kind: Role
-  name: jenkins-role-${env.DEPLOY_ENV}
+  name: jenkins-role-${env.DEPLOY_ENV.toLowerCase()}
   apiGroup: rbac.authorization.k8s.io
 EOF
                     """
