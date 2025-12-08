@@ -166,7 +166,7 @@ spec:
         image: ${IMAGE}
         imagePullPolicy: Always
         ports:
-        - containerPort: 8080
+        - containerPort: 80
 ---
 apiVersion: v1
 kind: Service
@@ -180,7 +180,7 @@ spec:
   ports:
   - name: http
     port: 80
-    targetPort: 8080
+    targetPort: 80
     nodePort: ${NODE_PORT}
 EOF
                     """
