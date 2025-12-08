@@ -54,13 +54,6 @@ pipeline {
                 echo 'Code checkout completed'
             }
         }
-        stage ('Display Files in Workspace') {
-            steps {
-                sh """
-                     ls 
-                    """
-            }
-        }
         // Stage two - Build Docker image using Kaniko
         stage('Build Docker Image with Kaniko') {
             when {
