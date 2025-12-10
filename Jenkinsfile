@@ -46,14 +46,14 @@ pipeline {
     }
     
     stages {
-        // Stage one - Checkout code from GitHub
-        stage('Checkout') {
-            steps {
-                echo 'Checking out code from GitHub...'
-                checkout scm
-                echo 'Code checkout completed'
-            }
-        }
+        // // Stage one - Checkout code from GitHub
+        // stage('Checkout') {
+        //     steps {
+        //         echo 'Checking out code from GitHub...'
+        //         checkout scm
+        //         echo 'Code checkout completed'
+        //     }
+        // }
         // Stage two - Build Docker image using Kaniko
         stage('Build Docker Image with Kaniko') {
             when {
@@ -377,7 +377,6 @@ EOF
             script {
                 sh """
                     kubectl delete configmap kaniko-registry-config --namespace=jenkins --ignore-not-found=true
-                    kubectl delete secret registry-credentials --namespace=jenkins --ignore-not-found=true
                 """ 
             }
         }
