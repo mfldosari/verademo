@@ -64,13 +64,7 @@ pipeline {
                 echo "Building ${IMAGE}"
                 script {
                     // Create config secret for Kaniko with custom registry
-                    sh """
-                        kubectl create secret generic registry-credentials \\
-                          --from-literal=username=${USERNAME} \\
-                          --from-literal=password=${PASSWORD} \\
-                          --namespace=jenkins \\
-                          --dry-run=client -o yaml | kubectl apply -f -
-                        
+                    sh """                 
                         # Create configmap with registry credentials for custom registry
                         echo '{"auths":{"${HOSTNAME}":{"auth":"'"\$(echo -n ${USERNAME}:${PASSWORD} | base64)"'"}}}' > /tmp/config.json
                         kubectl create configmap kaniko-registry-config \\
