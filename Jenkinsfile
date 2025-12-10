@@ -36,7 +36,7 @@ pipeline {
         // Dockerfile name from Jenkins credentials
         DOCKERFILE = credentials('dockerfile-name')
         
-        IMAGE = "${HOSTNAME}/${APPLICATION_NAME}:${BUILD_NUMBER}"
+        IMAGE = "${HOSTNAME}/${APPLICATION_NAME}:v${BUILD_NUMBER}"
         _LATEST = "${HOSTNAME}/${APPLICATION_NAME}:latest"
         
         // Convert any Git URL (GitHub, GitLab, Bitbucket, etc.) to git:// protocol
