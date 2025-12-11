@@ -200,58 +200,58 @@ EOF
             }
             steps {
                 echo "Deploying application to ${env.DEPLOY_ENV} namespace..."
-//                 script {
-//                     sh """
-//                         cat <<EOF | kubectl apply -f -
-// apiVersion: v1
-// kind: Namespace
-// metadata:
-//   name: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
-// ---
-// apiVersion: apps/v1
-// kind: Deployment
-// metadata:
-//   name: ${APPLICATION_NAME.toLowerCase()}
-//   namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
-//   labels:
-//     app: ${APPLICATION_NAME.toLowerCase()}
-// spec:
-//   replicas: 1
-//   selector:
-//     matchLabels:
-//       app: ${APPLICATION_NAME.toLowerCase()}
-//   template:
-//     metadata:
-//       labels:
-//         app: ${APPLICATION_NAME.toLowerCase()}
-//     spec:
-//       containers:
-//       - name: ${APPLICATION_NAME.toLowerCase()}
-//         image: ${USE_PREBUILT_IMAGE == 'true' ? PREBUILT_IMAGE : IMAGE}
-//         imagePullPolicy: Always
-//         ports:
-//         - containerPort: 8080
-//         env:
-//         - name: MYSQL_DATABASE
-//           value: "blab"
-// ---
-// apiVersion: v1
-// kind: Service
-// metadata:
-//   name: ${APPLICATION_NAME.toLowerCase()}-service
-//   namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
-// spec:
-//   type: NodePort
-//   selector:
-//     app: ${APPLICATION_NAME.toLowerCase()}
-//   ports:
-//   - name: http
-//     port: 8080
-//     targetPort: 8080
-//     nodePort: ${NODE_PORT}
-// EOF
-//                     """
-//                 }
+                script {
+                    sh """
+                        cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APPLICATION_NAME.toLowerCase()}
+  namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
+  labels:
+    app: ${APPLICATION_NAME.toLowerCase()}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${APPLICATION_NAME.toLowerCase()}
+  template:
+    metadata:
+      labels:
+        app: ${APPLICATION_NAME.toLowerCase()}
+    spec:
+      containers:
+      - name: ${APPLICATION_NAME.toLowerCase()}
+        image: ${USE_PREBUILT_IMAGE == 'true' ? PREBUILT_IMAGE : IMAGE}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: MYSQL_DATABASE
+          value: "blab"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APPLICATION_NAME.toLowerCase()}-service
+  namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
+spec:
+  type: NodePort
+  selector:
+    app: ${APPLICATION_NAME.toLowerCase()}
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    nodePort: ${NODE_PORT}
+EOF
+                    """
+                }
                 echo "Application ${APPLICATION_NAME} deployed successfully to ${env.DEPLOY_ENV}"
             }
         }
@@ -325,47 +325,7 @@ EOF
         success {
             script {
                 echo "Build completed successfully!"
-                echo "Docker image: ${IMAGE}"
-                echo "Docker Hub image: ${_LATEST}"
-                echo "=================================================="
-                echo "Deployment Summary for ${env.DEPLOY_ENV} Environment"
-                echo "=================================================="
-                
-                // Get namespace based on deployment
-                def namespace = "${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}"
-                
-                sh """
-                    echo "\n=== NAMESPACE INFO ==="
-                    kubectl get namespace ${namespace}
-                    
-                    echo "\n=== DEPLOYMENTS ==="
-                    kubectl get deployments -n ${namespace}
-                    
-                    echo "\n=== PODS ==="
-                    kubectl get pods -n ${namespace} -o wide
-                    
-                    echo "\n=== SERVICES ==="
-                    kubectl get services -n ${namespace}
-                    
-                    echo "\n=== REPLICASETS ==="
-                    kubectl get replicasets -n ${namespace}
-                    
-                    echo "\n=== ENDPOINTS ==="
-                    kubectl get endpoints -n ${namespace}
-                    
-                    echo "\n=== POD DETAILS ==="
-                    kubectl describe pods -n ${namespace}
-                    
-                    echo "\n=== SERVICE DETAILS ==="
-                    kubectl describe services -n ${namespace}
-                    
-                    echo "\n=== DEPLOYMENT ROLLOUT STATUS ==="
-                    kubectl rollout status deployment/${APPLICATION_NAME.toLowerCase()} -n ${namespace}
-                """
-                
-                echo "=================================================="
-                echo "Access your application at: http://<node-ip>:${NODE_PORT}"
-                echo "=================================================="
+                echo "Deployed Image: ${USE_PREBUILT_IMAGE == 'true' ? PREBUILT_IMAGE : IMAGE} to ${env.DEPLOY_ENV} environment."
             }
         }
         failure {
