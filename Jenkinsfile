@@ -59,24 +59,24 @@ pipeline {
         stage('registry credentials setup') {
             steps {
                 sh """
-    # Use backslash before \$ to tell Groovy: "Don't touch this, let the Shell handle it"
-    # But keep ${HOSTNAME} without a backslash if it is a Jenkins variable.
-    
-    echo "{
-      \\"auths\\": {
-        \\"https://index.docker.io/v1/\\": {},
-        \\"${HOSTNAME}\\": {
-          \\"auth\\": \\"\$(echo -n ${USERNAME}:${PASSWORD} | base64)\\"
-        }
-      }
-    }" > /tmp/config.json
-    
-    kubectl create configmap registry-config \
-      --from-file=/tmp/config.json \
-      --namespace=jenkins \
-      --dry-run=client -o yaml | kubectl apply -f -
-    rm /tmp/config.json
-"""
+                  # Use backslash before \$ to tell Groovy: "Don't touch this, let the Shell handle it"
+                  # But keep ${HOSTNAME} without a backslash if it is a Jenkins variable.
+                  
+                  echo "{
+                    \\"auths\\": {
+                      \\"https://index.docker.io/v1/\\": {},
+                      \\"${HOSTNAME}\\": {
+                        \\"auth\\": \\"\$(echo -n ${USERNAME}:${PASSWORD} | base64)\\"
+                      }
+                    }
+                  }" > /tmp/config.json
+                  
+                  kubectl create configmap registry-config \
+                    --from-file=/tmp/config.json \
+                    --namespace=jenkins \
+                    --dry-run=client -o yaml | kubectl apply -f -
+                  rm /tmp/config.json
+              """
             }
         }
         // Stage two - Build Docker image using Kaniko
@@ -151,59 +151,6 @@ pipeline {
             }
             steps {
                 echo "Deploying application to ${env.DEPLOY_ENV} namespace..."
-//                 script {
-//                     sh """
-//                         cat <<EOF | kubectl apply -f -
-// apiVersion: v1
-// kind: Namespace
-// metadata:
-//   name: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
-// ---
-// apiVersion: apps/v1
-// kind: Deployment
-// metadata:
-//   name: ${APPLICATION_NAME.toLowerCase()}
-//   namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
-//   labels:
-//     app: ${APPLICATION_NAME.toLowerCase()}
-// spec:
-//   replicas: 1
-//   selector:
-//     matchLabels:
-//       app: ${APPLICATION_NAME.toLowerCase()}
-//   template:
-//     metadata:
-//       labels:
-//         app: ${APPLICATION_NAME.toLowerCase()}
-//     spec:
-//       containers:
-//       - name: ${APPLICATION_NAME.toLowerCase()}
-//         image: ${USE_PREBUILT_IMAGE == 'true' ? PREBUILT_IMAGE : IMAGE}
-//         imagePullPolicy: Always
-//         ports:
-//         - containerPort: 8080
-//         env:
-//         - name: MYSQL_DATABASE
-//           value: "blab"
-// ---
-// apiVersion: v1
-// kind: Service
-// metadata:
-//   name: ${APPLICATION_NAME.toLowerCase()}-service
-//   namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
-// spec:
-//   type: NodePort
-//   selector:
-//     app: ${APPLICATION_NAME.toLowerCase()}
-//   ports:
-//   - name: http
-//     port: 8080
-//     targetPort: 8080
-//     nodePort: ${PROD_NODE_PORT}
-// EOF
-//                     """
-//                 }
-                echo "Application ${APPLICATION_NAME} deployed successfully to ${env.DEPLOY_ENV}"
             }
         }
         
@@ -277,59 +224,6 @@ EOF
             }
             steps {
                 echo "Deploying application to ${env.DEPLOY_ENV} namespace..."
-//                 script {
-//                     sh """
-//                         cat <<EOF | kubectl apply -f -
-// apiVersion: v1
-// kind: Namespace
-// metadata:
-//   name: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
-// ---
-// apiVersion: apps/v1
-// kind: Deployment
-// metadata:
-//   name: ${APPLICATION_NAME.toLowerCase()}
-//   namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
-//   labels:
-//     app: ${APPLICATION_NAME.toLowerCase()}
-// spec:
-//   replicas: 1
-//   selector:
-//     matchLabels:
-//       app: ${APPLICATION_NAME.toLowerCase()}
-//   template:
-//     metadata:
-//       labels:
-//         app: ${APPLICATION_NAME.toLowerCase()}
-//     spec:
-//       containers:
-//       - name: ${APPLICATION_NAME.toLowerCase()}
-//         image: ${USE_PREBUILT_IMAGE == 'true' ? PREBUILT_IMAGE : IMAGE}
-//         imagePullPolicy: Always
-//         ports:
-//         - containerPort: 8080
-//         env:
-//         - name: MYSQL_DATABASE
-//           value: "blab"
-// ---
-// apiVersion: v1
-// kind: Service
-// metadata:
-//   name: ${APPLICATION_NAME.toLowerCase()}-service
-//   namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
-// spec:
-//   type: NodePort
-//   selector:
-//     app: ${APPLICATION_NAME.toLowerCase()}
-//   ports:
-//   - name: http
-//     port: 8080
-//     targetPort: 8080
-//     nodePort: ${NODE_PORT}
-// EOF
-//                     """
-//                 }
-                echo "Application ${APPLICATION_NAME} deployed successfully to ${env.DEPLOY_ENV}"
             }
         }
         stage('Cancel Deployment') {
