@@ -57,15 +57,22 @@ pipeline {
         // }
         stage('registry credentials setup') {
             steps {
-                sh """                 
-                        # Create configmap with registry credentials for custom registry
-                        echo '{"auths":{"${HOSTNAME}":{"auth":"'"\$(echo -n ${USERNAME}:${PASSWORD} | base64)"'"}}}' > /tmp/config.json
-                        kubectl create configmap registry-config \\
-                          --from-file=/tmp/config.json \\
-                          --namespace=jenkins \\
-                          --dry-run=client -o yaml | kubectl apply -f -
-                        rm /tmp/config.json
-                    """
+                sh """
+                    # Create config.json with Docker Hub (anonymous) and custom registry credentials
+                    echo '{
+  "auths": {
+    "https://index.docker.io/v1/": {},
+    "${HOSTNAME}": {
+      "auth": "'"$(echo -n ${USERNAME}:${PASSWORD} | base64)"'"
+    }
+  }
+}' > /tmp/config.json
+                    kubectl create configmap registry-config \
+                      --from-file=/tmp/config.json \
+                      --namespace=jenkins \
+                      --dry-run=client -o yaml | kubectl apply -f -
+                    rm /tmp/config.json
+                """
             }
         }
         // Stage two - Build Docker image using Kaniko
