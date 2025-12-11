@@ -59,23 +59,11 @@ pipeline {
         stage('registry credentials setup') {
             steps {
                 sh """
-                  # Use backslash before \$ to tell Groovy: "Don't touch this, let the Shell handle it"
-                  # But keep ${HOSTNAME} without a backslash if it is a Jenkins variable.
-                  
-                  echo "{
-                    \\"auths\\": {
-                      \\"https://index.docker.io/v1/\\": {},
-                      \\"${HOSTNAME}\\": {
-                        \\"auth\\": \\"\$(echo -n ${USERNAME}:${PASSWORD} | base64)\\"
-                      }
-                    }
-                  }" > /tmp/config.json
-                  
-                  kubectl create configmap registry-config \
-                    --from-file=/tmp/config.json \
-                    --namespace=jenkins \
-                    --dry-run=client -o yaml | kubectl apply -f -
-                  rm /tmp/config.json
+                kubectl create secret registry-config \
+                  --docker-server=${HOSTNAME} \
+                  --docker-username=${USERNAME} \
+                  --docker-password=${PASSWORD} \
+                  --namespace=jenkins
               """
             }
         }
@@ -113,8 +101,8 @@ pipeline {
                               }],
                               "volumes": [{
                                 "name": "docker-config",
-                                "configMap": {
-                                  "name": "registry-config"
+                                "secret": {
+                                  "secretName": "registry-config"
                                 }
                               }],
                               "restartPolicy": "Never"
