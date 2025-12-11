@@ -19,7 +19,8 @@ pipeline {
         APPLICATION_NAME = 'verademo'
 
         // Node Port for the service
-        NODE_PORT = '30100'
+        DEV_NODE_PORT = credentials('DEV_NODE_PORT') 
+        PROD_NODE_PORT = credentials('PROD_NODE_PORT')
         
         // Use pre-built VeraDemo image from Docker Hub
         USE_PREBUILT_IMAGE = 'true'
@@ -135,7 +136,7 @@ pipeline {
                           submitter: 'admin,devops',
                           parameters: [
                               choice(name: 'DEPLOY_ENVIRONMENT', 
-                                     choices: ['Prod', 'Dev', 'Staging'], 
+                                     choices: ['Prod', 'Dev', 'Staging', 'Cancel'], 
                                      description: 'Select environment to deploy')
                           ]
                 }
@@ -198,7 +199,7 @@ spec:
   - name: http
     port: 8080
     targetPort: 8080
-    nodePort: ${NODE_PORT}
+    nodePort: ${PROD_NODE_PORT}
 EOF
                     """
                 }
@@ -261,7 +262,7 @@ spec:
   - name: http
     port: 8080
     targetPort: 8080
-    nodePort: ${NODE_PORT}
+    nodePort: ${DEV_NODE_PORT}
 EOF
                     """
                 }
@@ -329,6 +330,14 @@ EOF
 //                     """
 //                 }
                 echo "Application ${APPLICATION_NAME} deployed successfully to ${env.DEPLOY_ENV}"
+            }
+        }
+        stage('Cancel Deployment') {
+            when {
+                expression { env.DEPLOY_ENV == 'Cancel' }
+            }
+            steps {
+                echo 'Deployment has been cancelled by the approver.'
             }
         }
     }
