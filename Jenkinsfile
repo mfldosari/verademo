@@ -58,14 +58,14 @@ pipeline {
         // }
         stage('registry credentials setup') {
             steps {
-               sh """
-                    kubectl create secret docker-registry registry-config \
-                      --docker-server="${REGISTRY_HOST}" \
-                      --docker-username="${REGISTRY_USERNAME}" \
-                      --docker-password="${REGISTRY_PASSWORD}" \
-                      --namespace=jenkins \
-                      --dry-run=client -o yaml | kubectl apply -f -
-                """
+          sh """
+            kubectl create secret docker-registry registry-config \
+              --docker-server="${HOSTNAME}" \
+              --docker-username="${USERNAME}" \
+              --docker-password="${PASSWORD}" \
+              --namespace=jenkins \
+              --dry-run=client -o yaml | kubectl apply -f -
+            """
             }
         }
         // since docker is installed we can run docker build directly or use kaniko
