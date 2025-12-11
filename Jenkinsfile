@@ -45,35 +45,37 @@ pipeline {
         GIT_BRANCH = "${params.GIT_BRANCH_NAME ?: (env.GIT_BRANCH ? env.GIT_BRANCH.replaceAll('origin/', '') : 'main')}"
     }
     
+    stages {
+
+        // // Stage one - Checkout code from GitHub
+        // stage('Checkout') {
+        //     steps {
+        //         echo 'Checking out code from GitHub...'
+        //         checkout scm
+        //         echo 'Code checkout completed'
+        //     }
+        // }
+        stage('registry credentials setup') {
             steps {
-sh """
+                sh """
+    # Use backslash before \$ to tell Groovy: "Don't touch this, let the Shell handle it"
+    # But keep ${HOSTNAME} without a backslash if it is a Jenkins variable.
+    
     echo "{
-      \"auths\": {
-        \"https://index.docker.io/v1/\": {},
-        \"${HOSTNAME}\": { // Groovy now correctly interpolates the shell variable
-          \"auth\": \"$(echo -n ${USERNAME}:${PASSWORD} | base64)\"
+      \\"auths\\": {
+        \\"https://index.docker.io/v1/\\": {},
+        \\"${HOSTNAME}\\": {
+          \\"auth\\": \\"\$(echo -n ${USERNAME}:${PASSWORD} | base64)\\"
         }
       }
     }" > /tmp/config.json
+    
+    kubectl create configmap registry-config \
+      --from-file=/tmp/config.json \
+      --namespace=jenkins \
+      --dry-run=client -o yaml | kubectl apply -f -
+    rm /tmp/config.json
 """
-            }
-            steps {
-                sh """
-                    # Create config.json with Docker Hub (anonymous) and custom registry credentials
-                    echo '{
-  "auths": {
-    "https://index.docker.io/v1/": {},
-    "${HOSTNAME}": {
-      "auth": "'"$(echo -n ${USERNAME}:${PASSWORD} | base64)"'"
-    }
-  }
-}' > /tmp/config.json
-                    kubectl create configmap registry-config \
-                      --from-file=/tmp/config.json \
-                      --namespace=jenkins \
-                      --dry-run=client -o yaml | kubectl apply -f -
-                    rm /tmp/config.json
-                """
             }
         }
         // Stage two - Build Docker image using Kaniko
