@@ -122,7 +122,7 @@ pipeline {
                           submitter: 'admin,devops',
                           parameters: [
                               choice(name: 'DEPLOY_ENVIRONMENT', 
-                                     choices: ['Production', 'Development', 'Staging'], 
+                                     choices: ['Prod', 'Dev', 'Staging'], 
                                      description: 'Select environment to deploy')
                           ]
                 }
