@@ -337,11 +337,11 @@ EOF
         always {
             echo 'Pipeline execution completed.'
             // Cleanup Kaniko resources
-            script {
-                sh """
-                    kubectl delete configmap kaniko-registry-config --namespace=jenkins --ignore-not-found=true
-                """ 
-            }
+            // script {
+            //     sh """
+            //         kubectl delete configmap kaniko-registry-config --namespace=jenkins --ignore-not-found=true
+            //     """ 
+            // }
         }
     }
 
