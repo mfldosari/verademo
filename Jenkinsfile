@@ -133,7 +133,7 @@ pipeline {
         // Stage four A - Deploy to Kubernetes cluster
         stage('Production Deployment') {
             when {
-                expression { env.DEPLOY_ENV == 'Production' }
+                expression { env.DEPLOY_ENV == 'Prod' }
             }
             steps {
                 echo "Deploying application to ${env.DEPLOY_ENV} namespace..."
@@ -196,7 +196,7 @@ EOF
         // Stage four B - Deploy to development environment
         stage('Development Deployment') {
             when {
-                expression { env.DEPLOY_ENV == 'Development'}
+                expression { env.DEPLOY_ENV == 'Dev'}
             }
             steps {
                 echo "Deploying application to ${env.DEPLOY_ENV} namespace..."
