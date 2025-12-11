@@ -120,18 +120,18 @@ pipeline {
         // Stage three - Admin or DevOps Approval for Deployment
         stage('Pre-Deployment Approval') {
             steps {
-                script {
-                    env.DEPLOY_ENV = input message: 'Approve deployment to production?', 
-                          ok: 'Deploy',
-                          submitter: 'admin,devops',
-                          parameters: [
-                              choice(name: 'DEPLOY_ENVIRONMENT', 
-                                     choices: ['Prod [disabled]', 'Dev', 'Staging [disabled]', 'Cancel'], 
-                                     description: 'Select environment to deploy')
-                          ]
+                steps {
+                    script {
+                        sh """
+                            kubectl create secret docker-registry registry-config \
+                              --docker-server=\"$HOSTNAME\" \
+                              --docker-username=\"$USERNAME\" \
+                              --docker-password=\"$REGISTRY_CREDS_PSW\" \
+                              --namespace=jenkins \
+                              --dry-run=client -o yaml | kubectl apply -f -
+                        """
+                    }
                 }
-                echo "${APPLICATION_NAME} Deployment approved to ${env.DEPLOY_ENV}"
-            }
         }
         
         // Stage four A - Deploy to Kubernetes cluster
