@@ -50,16 +50,11 @@ sh """
     echo "{
       \"auths\": {
         \"https://index.docker.io/v1/\": {},
-        \"${HOSTNAME}\": {
+        \"${HOSTNAME}\": { // Groovy now correctly interpolates the shell variable
           \"auth\": \"$(echo -n ${USERNAME}:${PASSWORD} | base64)\"
         }
       }
     }" > /tmp/config.json
-    kubectl create configmap registry-config \
-      --from-file=/tmp/config.json \
-      --namespace=jenkins \
-      --dry-run=client -o yaml | kubectl apply -f -
-    rm /tmp/config.json
 """
             }
             steps {
