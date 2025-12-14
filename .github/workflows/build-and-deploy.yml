@@ -10,8 +10,19 @@ on:
   #     - main
 
 jobs:
-  build-and-deploy:
+  scan:
+     runs-on: ubuntu-latest
+     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Run CodeQL Analysis
+        run: |
+          echo "scan job would run here"
+
+
+  build:
     runs-on: ubuntu-latest
+    needs: scan
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -24,12 +35,9 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+
       #uncomment the following lines to observe full cicd with code scanning and docker build/push
-      
-      # - name: Scan Source Code
-      #   uses: github/codeql-action/init@v2
-      #   with:
-      #     languages: javascript
 
 
       # - name: Build Docker image
@@ -41,6 +49,25 @@ jobs:
       #     docker push ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }}
 
 # d5db94dc3c8ea5534d4624da9357da4fef62c342
-      - name: Deploy (echo only)
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.CREDENTIALS_JSON }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy to Cloud Run
         run: |
-          echo "Deploy step would go here."
+          gcloud run deploy ${{ secrets.GCP_SERVICE }} \
+            --image=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/jeel:${{ github.sha }} \
+            --platform=managed \
+            --region=${{ secrets.GCP_REGION }} \
+            --allow-unauthenticated \
+            --service-account=${{ secrets.GCP_RUN_SA }}
