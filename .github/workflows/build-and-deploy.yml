@@ -40,13 +40,13 @@ jobs:
       #uncomment the following lines to observe full cicd with code scanning and docker build/push
 
 
-      # - name: Build Docker image
-      #   run: |
-      #     docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }} .
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }} .
 
-      # - name: Push Docker image
-      #   run: |
-      #     docker push ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }}
+      - name: Push Docker image
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }}
 
 # d5db94dc3c8ea5534d4624da9357da4fef62c342
   deploy:
@@ -66,7 +66,7 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ secrets.GCP_SERVICE }} \
-            --image=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/verademo:d5db94dc3c8ea5534d4624da9357da4fef62c342 \
+            --image=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/verademo:{{ github.sha } \
             --platform=managed \
             --region=${{ secrets.GCP_REGION }} \
             --allow-unauthenticated \
