@@ -15,7 +15,7 @@ jobs:
      steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Run CodeQL Analysis
+      - name: Run Scan Analysis
         run: |
           echo "scan job would run here"
 
