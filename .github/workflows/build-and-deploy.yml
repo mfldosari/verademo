@@ -66,7 +66,7 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ secrets.GCP_SERVICE }} \
-            --image=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/jeel:${{ github.sha }} \
+            --image=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/verademo:d5db94dc3c8ea5534d4624da9357da4fef62c342 \
             --platform=managed \
             --region=${{ secrets.GCP_REGION }} \
             --allow-unauthenticated \
