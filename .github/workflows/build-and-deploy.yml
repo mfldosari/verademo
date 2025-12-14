@@ -1,7 +1,7 @@
 # This workflow is triggered manually (workflow_dispatch) and on push to main branch
 # It builds a Docker image, pushes to Docker Hub, and echos a deploy step
 
-name: Build and Deploy (Manual & Main)
+name: Scan, Build & Deploy 
 
 on:
   workflow_dispatch:
@@ -35,9 +35,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-
-      #uncomment the following lines to observe full cicd with code scanning and docker build/push
 
 
       - name: Build Docker image
