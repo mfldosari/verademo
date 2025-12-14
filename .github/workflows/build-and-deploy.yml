@@ -24,15 +24,23 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      #uncomment the following lines to observe full cicd with code scanning and docker build/push
+      
+      # - name: Scan Source Code
+      #   uses: github/codeql-action/init@v2
+      #   with:
+      #     languages: javascript
 
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }} .
 
-      - name: Push Docker image
-        run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }}
+      # - name: Build Docker image
+      #   run: |
+      #     docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }} .
 
+      # - name: Push Docker image
+      #   run: |
+      #     docker push ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }}
+
+# d5db94dc3c8ea5534d4624da9357da4fef62c342
       - name: Deploy (echo only)
         run: |
           echo "Deploy step would go here."
