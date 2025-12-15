@@ -1,3 +1,0 @@
-FROM docker.shaheen.z8/verademo:dev
-
-COPY ./app/target/ /app/target/
