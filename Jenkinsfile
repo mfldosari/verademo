@@ -23,7 +23,7 @@ pipeline {
         PROD_NODE_PORT = credentials('PROD_NODE_PORT')
         
         // Use pre-built VeraDemo image from Docker Hub
-        USE_PREBUILT_IMAGE = 'true'
+        USE_PREBUILT_IMAGE = 'false'
         PREBUILT_IMAGE = 'antfie/verademo:latest'
 
         // Docker Registry credentials from Jenkins
@@ -68,55 +68,55 @@ pipeline {
             """
             }
         }
-        // since docker is installed we can run docker build directly or use kaniko
-        // // Stage two - Build Docker image using Kaniko
-        // stage('Build Docker Image with Kaniko') {
-        //     when {
-        //         expression { USE_PREBUILT_IMAGE != 'true' }
-        //     }
-        //     steps {
-        //         echo 'Building Docker image with Kaniko...'
-        //         echo "Building ${IMAGE}"
-        //         script {
-        //             // Run Kaniko build
-        //             sh """
-        //                 kubectl run kaniko-build-${BUILD_NUMBER} \\
-        //                   --restart=Never \\
-        //                   --image=gcr.io/kaniko-project/executor:latest \\
-        //                   --namespace=jenkins \\
-        //                   --overrides='{
-        //                     "spec": {
-        //                       "containers": [{
-        //                         "name": "kaniko",
-        //                         "image": "gcr.io/kaniko-project/executor:latest",
-        //                         "args": [
-        //                           "--context=${GIT_REPO}#refs/heads/${GIT_BRANCH}",
-        //                           "--dockerfile=${DOCKERFILE}",
-        //                           "--destination=${IMAGE}",
-        //                           "--destination=${_LATEST}",
-        //                           "--skip-tls-verify"
-        //                         ],
-        //                         "volumeMounts": [{
-        //                           "name": "docker-config",
-        //                           "mountPath": "/kaniko/.docker"
-        //                         }]
-        //                       }],
-        //                       "volumes": [{
-        //                         "name": "docker-config",
-        //                         "secret": {
-        //                           "secretName": "registry-config"
-        //                         }
-        //                       }],
-        //                       "restartPolicy": "Never"
-        //                     }
-        //                   }' \\
-        //                   --attach=true \\
-        //                   --rm
-        //             """
-        //         }
-        //         echo 'Docker image built and pushed successfully with Kaniko'
-        //     }
-        // }
+        since docker is installed we can run docker build directly or use kaniko
+        // Stage two - Build Docker image using Kaniko
+        stage('Build Docker Image with Kaniko') {
+            when {
+                expression { USE_PREBUILT_IMAGE != 'true' }
+            }
+            steps {
+                echo 'Building Docker image with Kaniko...'
+                echo "Building ${IMAGE}"
+                script {
+                    // Run Kaniko build
+                    sh """
+                        kubectl run kaniko-build-${BUILD_NUMBER} \\
+                          --restart=Never \\
+                          --image=gcr.io/kaniko-project/executor:latest \\
+                          --namespace=jenkins \\
+                          --overrides='{
+                            "spec": {
+                              "containers": [{
+                                "name": "kaniko",
+                                "image": "gcr.io/kaniko-project/executor:latest",
+                                "args": [
+                                  "--context=${GIT_REPO}#refs/heads/${GIT_BRANCH}",
+                                  "--dockerfile=${DOCKERFILE}",
+                                  "--destination=${IMAGE}",
+                                  "--destination=${_LATEST}",
+                                  "--skip-tls-verify"
+                                ],
+                                "volumeMounts": [{
+                                  "name": "docker-config",
+                                  "mountPath": "/kaniko/.docker"
+                                }]
+                              }],
+                              "volumes": [{
+                                "name": "docker-config",
+                                "secret": {
+                                  "secretName": "registry-config"
+                                }
+                              }],
+                              "restartPolicy": "Never"
+                            }
+                          }' \\
+                          --attach=true \\
+                          --rm
+                    """
+                }
+                echo 'Docker image built and pushed successfully with Kaniko'
+            }
+        }
         // Stage three - Admin or DevOps Approval for Deployment
         stage('Pre-Deployment Approval') {
             steps {
