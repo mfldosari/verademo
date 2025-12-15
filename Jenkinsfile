@@ -119,11 +119,7 @@ pipeline {
             """
         }
     }
-}
-                echo "${APPLICATION_NAME} Deployment approved to ${env.DEPLOY_ENV}"
-            }
-        }
-        
+} 
         // Stage four A - Deploy to Kubernetes cluster
         stage('Production Deployment') {
             when {
