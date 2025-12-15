@@ -19,7 +19,6 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          target: dev
           push: false
           tags: verademo:dev
           outputs: type=docker
