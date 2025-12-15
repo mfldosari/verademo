@@ -1,5 +1,3 @@
 FROM docker.shaheen.z8/verademo:dev
 
-# Only copy the new/updated compiled application part
-# This assumes you have compiled your application outside the container
 COPY ./app/target/ /app/target/
