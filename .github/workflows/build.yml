@@ -6,27 +6,25 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
+      - name: Build Docker image and load to Docker daemon
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: false
           tags: verademo:dev
-          outputs: type=docker
+          outputs: type=docker,dest=/tmp/image.tar
+          load: true 
+          # -----------------------------------------------------------------
 
+      # You can now save the image as a tarball, as it is loaded locally
       - name: Save image as tarball
         run: docker save verademo:dev -o verademo-dev.tar
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: superset-image
-          path: superset-dev.tar
+          name: verademo-image
+          path: verademo-dev.tar 
