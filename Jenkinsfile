@@ -68,7 +68,7 @@ pipeline {
             """
             }
         }
-        since docker is installed we can run docker build directly or use kaniko
+        // since docker is installed we can run docker build directly or use kaniko
         // Stage two - Build Docker image using Kaniko
         stage('Build Docker Image with Kaniko') {
             when {
