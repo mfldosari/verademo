@@ -5,9 +5,9 @@ name: Scan, Build & Deploy
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
 
 jobs:
   scan:
@@ -63,7 +63,7 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ secrets.GCP_SERVICE }} \
-            --image=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/verademo:{{ github.sha } \
+            --image=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }} \
             --platform=managed \
             --region=${{ secrets.GCP_REGION }} \
             --allow-unauthenticated \
