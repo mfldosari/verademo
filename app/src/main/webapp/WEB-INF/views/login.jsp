@@ -9,7 +9,7 @@
 <meta name="description" content="">
 <meta name="author" content="">
 
-<title>Login to Blab v2</title>
+<title>Login to Blab</title>
 
 <!-- Bootstrap core CSS -->
 <link href="resources/css/bootstrap.min.css" rel="stylesheet">
@@ -34,7 +34,7 @@
 			<nav>
 				<ul class="nav nav-pills pull-right">
 					<!-- <li role="presentation"><a href="reset">Reset</a></li> -->
-					<li role="presentation" class="active"><a href="login">Login v2</a></li>
+					<li role="presentation" class="active"><a href="login">Login</a></li>
 					<li role="presentation"><a href="register">Register</a></li>
 				</ul>
 			</nav>
