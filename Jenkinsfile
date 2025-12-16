@@ -91,7 +91,7 @@ pipeline {
                         "image": "gcr.io/kaniko-project/executor:latest",
                         "args": [
                           "--context=${GIT_REPO}#refs/heads/${GIT_BRANCH}",
-                          "--dockerfile=Dockerfile.dev",
+                          "--dockerfile=Dockerfile",
                           "--destination=${IMAGE}",
                           "--destination=${_LATEST}",
                           "--skip-tls-verify"
