@@ -23,7 +23,7 @@ pipeline {
         PROD_NODE_PORT = credentials('PROD_NODE_PORT')
         
         // Use pre-built VeraDemo image from Docker Hub
-        USE_PREBUILT_IMAGE = 'false'
+        USE_PREBUILT_IMAGE = 'true'
         PREBUILT_IMAGE = 'antfie/verademo:latest'
 
         // Docker Registry credentials from Jenkins
