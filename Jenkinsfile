@@ -120,6 +120,21 @@ pipeline {
         }
     }
 } 
+      stage("approve deployment") {
+        steps {
+          script {
+            def userInput = input(
+              id: 'userInput', message: 'Approve Deployment?', parameters: [
+                choice(choices: ['Prod', 'Staging', 'Dev', 'Cancel'], description: 'Select the environment to deploy to:', name: 'DEPLOY_ENV')
+              ]
+            )
+            env.DEPLOY_ENV = userInput
+            echo "Deployment environment selected: ${env.DEPLOY_ENV}"
+          }
+        }
+      }
+    }
+
         // Stage four A - Deploy to Kubernetes cluster
         stage('Production Deployment') {
             when {
