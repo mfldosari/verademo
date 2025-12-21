@@ -38,26 +38,23 @@ pipeline {
         GIT_REPO = "${env.GIT_URL.replaceAll('https://', 'git://').replaceAll('http://', 'git://')}"
         GIT_BRANCH = "${params.GIT_BRANCH_NAME ?: (env.GIT_BRANCH ? env.GIT_BRANCH.replaceAll('origin/', '') : 'main')}"
 
-        script {
-            echo "GIT_REPO: ${env.GIT_REPO}"
-            echo "GIT_BRANCH: ${env.GIT_BRANCH}"
-        }
+        
     }
 
     stages {
       stage ('Scan Codebase') {
         steps {
           echo "Scanning codebase for vulnerabilities..."
-          // script {
-          //     def scanConfig = readJSON file: env.scan_config_json
-          //     env.SCAN_API_URL = scanConfig.SCAN_API_URL
-          //     env.VALUE = scanConfig.KEY
-          //     env.VALUE2 = scanConfig.KEY2
+          script {
+              def scanConfig = readJSON file: env.scan_config_json
+              env.SCAN_API_URL = scanConfig.SCAN_API_URL
+              env.VALUE = scanConfig.KEY
+              env.VALUE2 = scanConfig.KEY2
 
-          //     // echo "SCAN_API_URL: ${env.SCAN_API_URL}"
-          //     // echo "VALUE: ${env.VALUE}"
-          //     // echo "VALUE2: ${env.VALUE2}"
-          // }
+              // echo "SCAN_API_URL: ${env.SCAN_API_URL}"
+              // echo "VALUE: ${env.VALUE}"
+              // echo "VALUE2: ${env.VALUE2}"
+          }
           sh """
              echo "SCAN_API_URL is set to ${env.SCAN_API_URL}"
           """
