@@ -23,7 +23,7 @@ pipeline {
         HOSTNAME = credentials('registry-hostname')
         DOCKERFILE = credentials('dockerfile-name')
 
-        // Scan Codebase credentials
+        // Scan Codebase config file
         scan_config_json = credentials('scan-config-json')
 
         // GitHub credentials
@@ -49,10 +49,13 @@ pipeline {
               env.VALUE = scanConfig.KEY
               env.VALUE2 = scanConfig.KEY2
 
-              echo "SCAN_API_URL: ${env.SCAN_API_URL}"
-              echo "VALUE: ${env.VALUE}"
-              echo "VALUE2: ${env.VALUE2}"
+              // echo "SCAN_API_URL: ${env.SCAN_API_URL}"
+              // echo "VALUE: ${env.VALUE}"
+              // echo "VALUE2: ${env.VALUE2}"
           }
+          sh """
+             echo "SCAN_API_URL is set to ${env.SCAN_API_URL}"
+          """
           // sh """
           //     curl -G -L "${env.SCAN_API_URL}" \
           //         --data-urlencode "key=${env.VALUE}" \
