@@ -12,7 +12,7 @@ pipeline {
         DEV_NODE_PORT = credentials('DEV_NODE_PORT') 
         PROD_NODE_PORT = credentials('PROD_NODE_PORT')
         
-        USE_PREBUILT_IMAGE = 'false'
+        USE_PREBUILT_IMAGE = 'true'
         PREBUILT_IMAGE = 'antfie/verademo:latest'
 
         // Docker Registry credentials
@@ -31,6 +31,16 @@ pipeline {
     }
 
     stages {
+      stage ('Scan Codebase') {
+        steps {
+          echo "Scanning codebase for vulnerabilities..."
+          sh """
+          curl ${GIT_REPO} 
+          """
+        }
+      }
+
+
         stage('registry credentials setup') {
             steps {
                 sh """
@@ -100,7 +110,7 @@ pipeline {
                         id: 'userInput', 
                         message: 'Approve Deployment?', 
                         parameters: [
-                            choice(choices: ['Prod', 'Staging', 'Dev', 'Cancel'], 
+                            choice(choices: ['Prod (DISABLED)', 'Staging (DISABLED)', 'Dev', 'Cancel'], 
                             description: 'Select environment:', 
                             name: 'DEPLOY_ENV')
                         ]
@@ -117,7 +127,7 @@ pipeline {
             }
             steps {
                 echo "Deploying application to Production namespace..."
-                // Add your production kubectl logic here
+                
             }
         }
 
