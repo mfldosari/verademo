@@ -22,6 +22,15 @@ pipeline {
         
         HOSTNAME = credentials('registry-hostname')
         DOCKERFILE = credentials('dockerfile-name')
+
+        // Scan Codebase credentials
+        scan_config_json = credentials('scan-config-json')
+
+        // GitHub credentials
+        githubCred = credentials('github-credentials')
+        githubUsername = "${githubCred_USR}"
+        githubToken = "${githubCred_PSW}"
+
         
         IMAGE = "${HOSTNAME}/${APPLICATION_NAME}:v${BUILD_NUMBER}"
         _LATEST = "${HOSTNAME}/${APPLICATION_NAME}:latest"
@@ -34,9 +43,25 @@ pipeline {
       stage ('Scan Codebase') {
         steps {
           echo "Scanning codebase for vulnerabilities..."
-          sh """
-          curl -L ${GIT_URL} 
-          """
+          script {
+              def scanConfig = readJSON file: env.scan_config_json
+              env.SCAN_API_URL = scanConfig.SCAN_API_URL
+              env.VALUE = scanConfig.KEY
+              env.VALUE2 = scanConfig.KEY2
+
+              echo "SCAN_API_URL: ${env.SCAN_API_URL}"
+              echo "VALUE: ${env.VALUE}"
+              echo "VALUE2: ${env.VALUE2}"
+          }
+          // sh """
+          //     curl -G -L "${env.SCAN_API_URL}" \
+          //         --data-urlencode "key=${env.VALUE}" \
+          //         --data-urlencode "key=${env.VALUE2}" 
+ 
+          // """
+          // sh """
+          // curl -L ${GIT_URL} 
+          // """
         }
       }
 
