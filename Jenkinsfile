@@ -12,7 +12,7 @@ pipeline {
         DEV_NODE_PORT = credentials('DEV_NODE_PORT') 
         PROD_NODE_PORT = credentials('PROD_NODE_PORT')
         
-        USE_PREBUILT_IMAGE = 'true'
+        USE_PREBUILT_IMAGE = 'false'
         PREBUILT_IMAGE = 'antfie/verademo:latest'
 
         // Docker Registry credentials
