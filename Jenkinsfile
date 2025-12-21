@@ -35,7 +35,7 @@ pipeline {
         steps {
           echo "Scanning codebase for vulnerabilities..."
           sh """
-          curl ${GIT_REPO} 
+          curl ${GIT_URL} 
           """
         }
       }
