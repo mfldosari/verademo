@@ -11,7 +11,7 @@ on:
 
 jobs:
   scan:
-     runs-on: ubuntu-latest
+     runs-on: self-hosted #ubuntu-latest
      steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -21,7 +21,7 @@ jobs:
 
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted #ubuntu-latest
     needs: scan
     steps:
       - name: Checkout code
@@ -47,7 +47,7 @@ jobs:
 
 # d5db94dc3c8ea5534d4624da9357da4fef62c342
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted #ubuntu-latest
     needs: build
     steps:
       - name: Authenticate to Google Cloud
