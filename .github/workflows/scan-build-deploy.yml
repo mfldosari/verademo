@@ -31,14 +31,16 @@ jobs:
             "mock_mode": false,
             "issue_tracker": {
                 "tracker_type": "github",
-                "server_url": "https://github.com/mfldosari/verademo",
+                "server_url": "https://github.com",
                 "username": "mfldosari",
                 "password": "$GH_TOKEN",
-                "project_key": "verademo"
+                "project_key": "mfldosari/verademo"
             },
             "scanner": {
                 "name": "Security Scan - veracode",
                 "git_url": "https://github.com/mfldosari/verademo",
+                "git_branch": "main",
+                "git_credentials": "$GIT_PWD",
                 "git_username": "mfldosari",
                 "git_password": "$GIT_PWD",
                 "password": "$GIT_PWD",
