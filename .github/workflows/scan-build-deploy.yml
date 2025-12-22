@@ -28,7 +28,7 @@ jobs:
             --data-binary @- <<EOF
           {
             "action_type": "scan_only",
-            "mock_mode": true,
+            "mock_mode": false,
             "issue_tracker": {
                 "tracker_type": "github",
                 "server_url": "https://github.com/mfldosari/verademo",
