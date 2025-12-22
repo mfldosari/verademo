@@ -67,7 +67,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }} -f Dockerfile.dev .
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }}  .
 
       - name: Push Docker image
         run: |
