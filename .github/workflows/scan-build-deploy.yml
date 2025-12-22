@@ -14,7 +14,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Execute Veracode Security Scan
-        shell: cmd
+        shell: bash
         env:
           GIT_PWD: ${{ secrets.GIT_PASSWORD }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
