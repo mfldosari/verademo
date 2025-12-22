@@ -19,80 +19,85 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }}
           GIT_PWD: ${{ secrets.GIT_PASSWORD }}
         run: |
+          # We use --data @- with a Heredoc (EOF) to make JSON handling 100x easier
           curl -s -k -X POST \
             -H "Content-Type: application/json" \
             -H "accept: application/json" \
             -b "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwOi8vMTcyLjIwLjMxLjEzNTozMDAwIiwic3ViIjoiY21neXlmcWM0MDAwMHNoMTEyamZsMWU4OCIsImF1ZCI6WyJodHRwOi8vMTcyLjIwLjMxLjEzNTozMDAwIl0sImlhdCI6MTc2MDk1MzgxOSwiZXhwIjoxNzYxMDQwMjE5fQ.pprzfrkbHPEZL_3_KW0SHy4d254IciWrpcJsdx2NKKQ" \
-            --data-binary "{ \
-            \"action_type\": \"scan_only\", \
-            \"mock_mode\": false, \
-            \"issue_tracker\": { \
-                \"tracker_type\": \"github\", \
-                \"server_url\": \"https://github.com/mfldosari/verademo\", \
-                \"username\": \"mfldosari\", \
-                \"password\": \"$GH_TOKEN\", \
-                \"project_key\": \"verademo\" \
-            }, \
-            \"scanner\": { \
-                \"name\": \"Security Scan - veracode\", \
-                \"git_url\": \"https://github.com/mfldosari/verademo\", \
-                \"git_username\": \"mfldosari\", \
-                \"password\": \"$GIT_PWD\", \
-                \"llm_endpoint_url\": \"http://172.20.30.92:11434/v1\", \
-                \"llm_model_name\": \"SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL\", \
-                \"llm_api_key\": \"ollama\", \
-                \"llm_max_context_tokens\": 262144, \
-                \"include_file_extensions\": [\".java\",\".jsp\",\".js\",\".py\"], \
-                \"exclude_file_dirs\": [\".git\", \"node_modules\", \"venv\", \"__pycache__\", \"docs\", \"target\"], \
-                \"include_vulnerability_types\": [\"SQL Injection\", \"Cross-Site Scripting (XSS)\", \"Insecure Authentication\"], \
-                \"max_vulnerabilities\": 10 \
-            }}" \
-            "http://172.20.31.135:30899/api/v1/orchestrator/execute"
-  build:
-    runs-on: ubuntu-latest
-    needs: scanning
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+            "http://172.20.31.135:30899/api/v1/orchestrator/execute" \
+            --data-binary @- <<EOF
+          {
+            "action_type": "scan_only",
+            "mock_mode": true,
+            "issue_tracker": {
+                "tracker_type": "github",
+                "server_url": "https://github.com/mfldosari/verademo",
+                "username": "mfldosari",
+                "password": "$GH_TOKEN",
+                "project_key": "verademo"
+            },
+            "scanner": {
+                "name": "Security Scan - veracode",
+                "git_url": "https://github.com/mfldosari/verademo",
+                "git_username": "mfldosari",
+                "git_password": "$GIT_PWD",
+                "password": "$GIT_PWD",
+                "llm_endpoint_url": "http://172.20.30.92:11434/v1",
+                "llm_model_name": "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
+                "llm_api_key": "ollama",
+                "llm_max_context_tokens": 262144,
+                "include_file_extensions": [".java",".jsp",".js",".py"],
+                "exclude_file_dirs": [".git", "node_modules", "venv", "__pycache__", "docs", "target"],
+                "include_vulnerability_types": ["SQL Injection", "Cross-Site Scripting (XSS)", "Insecure Authentication"],
+                "max_vulnerabilities": 10
+            }
+          }
+          EOF
+#   build:
+#     runs-on: ubuntu-latest
+#     needs: scanning
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+#       - name: Set up Docker Buildx
+#         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+#       - name: Log in to DockerHub
+#         uses: docker/login-action@v3
+#         with:
+#           username: ${{ secrets.DOCKERHUB_USERNAME }}
+#           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
 
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }}  .
+#       - name: Build Docker image
+#         run: |
+#           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }}  .
 
-      - name: Push Docker image
-        run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }}
+#       - name: Push Docker image
+#         run: |
+#           docker push ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }}
 
-# d5db94dc3c8ea5534d4624da9357da4fef62c342
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.CREDENTIALS_JSON }}
+# # d5db94dc3c8ea5534d4624da9357da4fef62c342
+#   deploy:
+#     runs-on: ubuntu-latest
+#     needs: build
+#     steps:
+#       - name: Authenticate to Google Cloud
+#         uses: google-github-actions/auth@v2
+#         with:
+#           credentials_json: ${{ secrets.CREDENTIALS_JSON }}
 
-      - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+#       - name: Set up gcloud
+#         uses: google-github-actions/setup-gcloud@v1
+#         with:
+#           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy ${{ secrets.GCP_SERVICE }} \
-            --image=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }} \
-            --platform=managed \
-            --region=${{ secrets.GCP_REGION }} \
-            --allow-unauthenticated \
-            --service-account=${{ secrets.GCP_RUN_SA }}
+#       - name: Deploy to Cloud Run
+#         run: |
+#           gcloud run deploy ${{ secrets.GCP_SERVICE }} \
+#             --image=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }} \
+#             --platform=managed \
+#             --region=${{ secrets.GCP_REGION }} \
+#             --allow-unauthenticated \
+#             --service-account=${{ secrets.GCP_RUN_SA }}
