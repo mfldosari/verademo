@@ -39,14 +39,17 @@ pipeline {
         stage('Scan Codebase') {
             steps {
                 echo "Scanning codebase for vulnerabilities..."
-                echo "username: ${env.githubUsername}"
-                echo "token: ${env.githubToken}"
                 script {
+                    withCredentials([
+                    usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN'),
+                    file(credentialsId: 'scan-config-json', variable: 'SCAN_CONFIG_FILE')
+                ])
+                {
                     // 1. Load configuration
                     def scanConfig = readJSON file: env.scan_config_json
                     env.SCAN_API_URL = scanConfig.SCAN_API_URL
                     env.ACCESS_TOKEN = scanConfig.ACCESS_TOKEN
-
+                    echo "Starting scan for user: ${GH_USER}"
                     // 2. PREPARE JSON (This ensures variables are resolved correctly)
                     def jsonPayload = """
 {
