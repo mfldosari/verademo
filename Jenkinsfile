@@ -191,7 +191,7 @@ EOF
     }
 }
 
-    
+}
   
 
 //         stage('registry credentials setup') {
