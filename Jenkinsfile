@@ -23,136 +23,114 @@ pipeline {
         // Scan Codebase config file
         scan_config_json = credentials('scan-config-json')
 
-        // GitHub credentials
-        // githubCred = credentials('github-credentials')
-        // githubUsername = "${env.githubCred_USR}"
-        // githubToken = "${env.githubCred_PSW}"
-
+        
         IMAGE = "${HOSTNAME}/${APPLICATION_NAME}:v${BUILD_NUMBER}"
         _LATEST = "${HOSTNAME}/${APPLICATION_NAME}:latest"
         
         GIT_REPO = "${env.GIT_URL.replaceAll('https://', 'git://').replaceAll('http://', 'git://')}"
         GIT_BRANCH = "${params.GIT_BRANCH_NAME ?: (env.GIT_BRANCH ? env.GIT_BRANCH.replaceAll('origin/', '') : 'main')}"
+
+        
     }
 
     stages {
-        stage('Scan Codebase') {
-            steps {
-                // Binding 'string' for Secret Text and 'file' for Secret File
-                withCredentials([
-                    string(credentialsId: "${env.GH_TOKEN_ID}", variable: 'GH_TOKEN'),
-                    file(credentialsId: "${env.SCAN_CONFIG_ID}", variable: 'SCAN_CONFIG_FILE')
-                ]) {
-                    script {
-                        // 1. Load config from the path
-                        def scanConfig = readJSON file: env.SCAN_CONFIG_FILE
-                        def scanApiUrl = scanConfig.SCAN_API_URL
-                        def accessToken = scanConfig.ACCESS_TOKEN
+      stage('Scan Codebase') {
+    steps {
+        echo "Scanning codebase for vulnerabilities..."
+        script {
+            // 1. Load config from JSON
+            def scanConfig = readJSON file: env.scan_config_json
+            env.SCAN_API_URL = scanConfig.SCAN_API_URL 
+            env.ACCESS_TOKEN = scanConfig.ACCESS_TOKEN
+            env.git_token = scanConfig.git_token  
 
-                        // 2. Build Payload
-                        def payloadMap = [
-                            action_type: "scan_only",
-                            mock_mode: false,
-                            issue_tracker: [
-                                tracker_type: "github",
-                                server_url: "https://github.com",
-                                username: "mfldosari",
-                                password: GH_TOKEN,
-                                project_key: "mfldosari/${env.APPLICATION_NAME}"
-                            ],
-                            scanner: [
-                                name: "Security Scan - veracode",
-                                git_url: "https://github.com/mfldosari/verademo",
-                                git_branch: env.GIT_BRANCH,
-                                git_credentials: GH_TOKEN,
-                                git_username: "mfldosari",
-                                git_password: GH_TOKEN,
-                                llm_endpoint_url: "http://172.20.30.92:11434/v1",
-                                llm_model_name: "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
-                                llm_api_key: "ollama",
-                                llm_max_context_tokens: 262144,
-                                include_file_extensions: [".java",".jsp",".js",".py"],
-                                exclude_file_dirs: [".git", "node_modules", "venv", "__pycache__", "docs", "target"],
-                                include_vulnerability_types: ["SQL Injection", "Cross-Site Scripting (XSS)", "Insecure Authentication"],
-                                max_vulnerabilities: 10
-                            ]
-                        ]
-
-                        def jsonPayload = groovy.json.JsonOutput.toJson(payloadMap)
-
-                        // 3. Trigger Scan
-                        // Note: Using single quotes for the -d payload to avoid shell interference
-                        def response = sh(script: """
-                            curl -s -k -X POST \
-                            -H "Content-Type: application/json" \
-                            -H "accept: application/json" \
-                            -b "access_token=${accessToken}" \
-                            "${scanApiUrl}/api/v1/orchestrator/execute" \
-                            -d '${jsonPayload}'
-                        """, returnStdout: true).trim()
-
-                        echo "API RESPONSE: ${response}"
-                        def props = readJSON text: response
-                        
-                        if (props.scan_id) {
-                            env.SCAN_ID = props.scan_id
-                        } else {
-                            error "Scan failed to start: ${response}"
-                        }
-
-                        // 4. Polling Loop
-                        def status = "running"
-                        def statusUrl = "${scanApiUrl}/api/v1/scans/${env.SCAN_ID}"
-                        
-                        while (status == "running" || status == "queued" || status == "in_progress") {
-                            echo "Current Status: ${status}. Waiting 2 minutes..."
-                            sleep(120) 
-                            def pollResponse = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
-                            def pollJson = readJSON text: pollResponse
-                            status = pollJson.status
-                        }
-
-                        // 5. Security Gate
-                        if (status == "completed") {
-                            def finalResult = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
-                            def data = readJSON text: finalResult
-                            
-                            int critical = data.critical_count ?: 0
-                            int high = data.high_count ?: 0
-
-                            echo "Final Counts - Critical: ${critical}, High: ${high}"
-
-                            if (critical > 0 || high > 0) {
-                                error "GATE FAILED: High-risk vulnerabilities found."
-                            } else {
-                                echo "Gate Passed."
-                            }
-                        }
+            // 2. Trigger the Scan (POST)
+            def response = sh(script: """
+                curl -s -k -X POST \
+                -H "Content-Type: application/json" \
+                -H "accept: application/json" \
+                -b "access_token=${env.ACCESS_TOKEN}" \
+                "${env.SCAN_API_URL}/api/v1/orchestrator/execute" \
+                --data-binary @- <<EOF
+                {
+                    "action_type": "scan_only",
+                    "mock_mode": false,
+                    "issue_tracker": {
+                        "tracker_type": "github",
+                        "server_url": "https://github.com",
+                        "username": "mfldosari",
+                        "password": "${env.git_token}",
+                        "project_key": "mfldosari/${env.APPLICATION_NAME}"
+                    },
+                    "scanner": {
+                        "name": "Security Scan - veracode",
+                        "git_url": "https://github.com/mfldosari/verademo",
+                        "git_branch": "${env.GIT_BRANCH}",
+                        "git_credentials": "${env.git_token}",
+                        "git_username": "mfldosari",
+                        "git_password": "${env.git_token}",
+                        "llm_endpoint_url": "http://172.20.30.92:11434/v1",
+                        "llm_model_name": "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
+                        "llm_api_key": "ollama",
+                        "llm_max_context_tokens": 262144,
+                        "include_file_extensions": [".java",".jsp",".js",".py"],
+                        "exclude_file_dirs": [".git", "node_modules", "venv", "__pycache__", "docs", "target"],
+                        "include_vulnerability_types": ["SQL Injection", "Cross-Site Scripting (XSS)", "Insecure Authentication"],
+                        "max_vulnerabilities": 10
                     }
+                }
+                EOF
+            """, returnStdout: true).trim()
+
+            def props = readJSON text: response
+            env.SCAN_ID = props.scan_id
+            echo "Scan initiated. ID: ${env.SCAN_ID}"
+
+            // 3. Polling Loop
+            def status = "running"
+            // Note the different path for checking status (/api/v1/scans/)
+            def statusUrl = "${env.SCAN_API_URL}/api/v1/scans/${env.SCAN_ID}"
+            
+            while (status == "running") {
+                echo "Scan still in progress... waiting 2 minutes."
+                sleep(120)
+                
+                def pollResponse = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
+                def pollJson = readJSON text: pollResponse
+                status = pollJson.status
+                echo "Current Status: ${status}"
+                
+                if (status == "failed") {
+                    error "Scanner system failure. Aborting build."
+                }
+            }
+
+            // 4. Final Security Gate
+            if (status == "completed") {
+                def finalResult = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
+                def data = readJSON text: finalResult
+                
+                int total = data.total_vulnerabilities_found ?: 0
+                int critical = data.critical_count ?: 0
+                int high = data.high_count ?: 0
+                int medium = data.medium_count ?: 0
+
+                echo "Report: Total: ${total}, Critical: ${critical}, High: ${high}, Medium: ${medium}"
+
+                if (total > 0 && (critical > 0 || high > 0 || medium > 0)) {
+                    error "SECURITY GATE FAILED: High-risk vulnerabilities found. Blocking deployment."
+                } else {
+                    echo "Security Gate Passed. Moving to Build stage."
                 }
             }
         }
     }
-}
-        
-      
-            
-        
-        
+      }
+    }
+    }
 
-        // stage('Build & Push') {
-        //     steps {
-        //         echo "Security gate passed. Building Docker image..."
-        //         sh """
-        //             docker build -t ${IMAGE} -f ${DOCKERFILE} .
-        //             docker tag ${IMAGE} ${_LATEST}
-        //             echo ${PASSWORD} | docker login ${HOSTNAME} -u ${USERNAME} --password-stdin
-        //             docker push ${IMAGE}
-        //             docker push ${_LATEST}
-        //         """
-        //     }
-        // }
-
+    
+  
 
 //         stage('registry credentials setup') {
 //             steps {
@@ -335,5 +313,3 @@ pipeline {
 //         always {
 //             echo 'Pipeline execution completed.'
 //         }
-//     }
-// }
