@@ -72,7 +72,7 @@ EOF
                 """, returnStdout: true).trim()
 
                 def props = readJSON text: response
-                env.SCAN_ID = "8246b7cd-488a-4c43-9725-1a4f7cd60ac2" //props.scan_id
+                env.SCAN_ID = props.scan_id
                 echo "Scan initiated. ID: ${env.SCAN_ID}"
 
                 // 3. Polling Loop
@@ -98,7 +98,7 @@ EOF
                     def finalResult = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
                     def data = readJSON text: finalResult
                     
-                    int total = 0 //data.total_vulnerabilities_found ?: 0
+                    int total = data.total_vulnerabilities_found ?: 0
                     int critical = data.critical_count ?: 0
                     int high = data.high_count ?: 0
                     int medium = data.medium_count ?: 0
