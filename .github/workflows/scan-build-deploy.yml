@@ -22,12 +22,13 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
         run: |
           
           RESPONSE=$( curl -s -k -X POST \
             -H "Content-Type: application/json" \
             -H "accept: application/json" \
-            -b "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwOi8vMTcyLjIwLjMxLjEzNTozMDAwIiwic3ViIjoiY21neXlmcWM0MDAwMHNoMTEyamZsMWU4OCIsImF1ZCI6WyJodHRwOi8vMTcyLjIwLjMxLjEzNTozMDAwIl0sImlhdCI6MTc2MDk1MzgxOSwiZXhwIjoxNzYxMDQwMjE5fQ.pprzfrkbHPEZL_3_KW0SHy4d254IciWrpcJsdx2NKKQ" \
+            -b "access_token=$ACCESS_TOKEN" \
             "http://172.20.31.135:30899/api/v1/orchestrator/execute" \
             --data-binary @- <<EOF
           {
