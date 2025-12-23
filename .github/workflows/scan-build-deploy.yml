@@ -110,11 +110,13 @@ jobs:
             fi
   
             RESULT=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
-            TOTAL=0
-            #$(echo "$RESULT" | jq -r '.total_vulnerabilities_found // 0')
-            CRITICAL=$(echo "$RESULT" | jq -r '.critical_count // 0')
-            HIGH=$(echo "$RESULT" | jq -r '.high_count // 0')
-            MEDIUM=$(echo "$RESULT" | jq -r '.medium_count // 0')
+            TOTAL=$(echo "$RESULT" | jq -r '.total_vulnerabilities_found // 0')
+            CRITICAL=0
+            #$(echo "$RESULT" | jq -r '.critical_count // 0')
+            HIGH=0
+            #$(echo "$RESULT" | jq -r '.high_count // 0')
+            MEDIUM=0
+            $(echo "$RESULT" | jq -r '.medium_count // 0')
   
             echo "Analysis: Total: $TOTAL | Critical: $CRITICAL | High: $HIGH | Medium: $MEDIUM"
   
