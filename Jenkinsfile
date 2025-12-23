@@ -40,96 +40,31 @@ pipeline {
 
 stage('Scan Codebase') {
         steps {
-          script {
-            // --- YOUR EXISTING CODE ---
-            def scanConfig = readJSON file: env.scan_config_json
-            env.SCAN_API_URL = scanConfig.SCAN_API_URL
-            env.ACCESS_TOKEN = scanConfig.ACCESS_TOKEN
+          script { // Brace 1
+            // ... load config ...
 
-            def response = sh(script: """
-                curl -s -k -X POST \
-                -H "Content-Type: application/json" \
-                -H "accept: application/json" \
-                -b "access_token=${env.ACCESS_TOKEN}" \
-                "${env.SCAN_API_URL}/api/v1/orchestrator/execute" \
-                --data-binary @- <<EOF
-                {
-                  "action_type": "scan_only",
-                  "mock_mode": false,
-                  "issue_tracker": {
-                      "tracker_type": "github",
-                      "server_url": "https://github.com",
-                      "username": "${env.githubUsername}",
-                      "password": "${env.githubToken}",
-                      "project_key": "mfldosari/${env.APPLICATION_NAME}"
-                  },
-                  "scanner": {
-                      "name": "Security Scan - veracode",
-                      "git_url": "https://github.com/mfldosari/verademo",
-                      "git_branch": "${env.GIT_BRANCH}",
-                      "git_username": "${env.githubUsername}",
-                      "git_password": "${env.githubToken}"
-                  }
-                }
-                EOF
-            """, returnStdout: true).trim()
-
-            echo "RAW API RESPONSE: ${response}"
+            def response = sh(script: """ curl ... """, returnStdout: true).trim()
             def props = readJSON text: response
             env.SCAN_ID = props.scan_id
 
-            if (!env.SCAN_ID || env.SCAN_ID == "null") {
-                error "Aborting: Could not retrieve a valid Scan ID from the API."
-            }
+            if (env.SCAN_ID) { // Brace 2
+                def status = "running"
+                while (status == "running") { // Brace 3
+                    sleep(120)
+                    // ... poll ...
+                    status = pollJson.status
+                } // Close Brace 3
 
-            // --- STEP 2: POLLING LOOP ---
-            def status = "running"
-            def statusUrl = "${env.SCAN_API_URL}/api/v1/scans/${env.SCAN_ID}"
-            
-            echo "Waiting for scan ${env.SCAN_ID} to complete..."
-
-            while (status == "running") {
-                sleep(120) // Wait 2 minutes
-                
-                def pollResponse = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
-                def pollJson = readJSON text: pollResponse
-                status = pollJson.status
-                echo "Current Status: ${status}"
-                
-                if (status == "failed") {
-                    error "Security scanner encountered a system failure."
-                }
-            }
-
-            // --- STEP 3: QUALITY GATE ---
-            if (status == "completed") {
-                def finalResult = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
-                def data = readJSON text: finalResult
-                
-                // Extracting counts
-                int total = data.total_vulnerabilities_found ?: 0
-                int critical = data.critical_count ?: 0
-                int high = data.high_count ?: 0
-                int medium = data.medium_count ?: 0
-
-                echo "Scan Summary -> Total: ${total}, Critical: ${critical}, High: ${high}, Medium: ${medium}"
-
-                if (critical > 0 || high > 0 || medium > 0) {
-                    error "BUILD FAILED: Security gate not met. Found high-risk vulnerabilities."
-                } else {
-                    echo "Security gate passed. No Critical, High, or Medium vulnerabilities found."
-                }
-            }
-          }
+                if (status == "completed") { // Brace 4
+                    // ... check results ...
+                    if (total > 0) { // Brace 5
+                        error "Failed"
+                    } // Close Brace 5
+                } // Close Brace 4
+            } // Close Brace 2
+          } // Close Brace 1
         }
       }
-
-      
-    
-        
-    
-
-
 
 //         stage('registry credentials setup') {
 //             steps {
