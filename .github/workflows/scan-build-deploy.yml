@@ -5,9 +5,9 @@ name: Scan, Build & Deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
 
 jobs:
   scanning:
@@ -17,7 +17,6 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
-          GIT_PWD: ${{ secrets.GIT_PASSWORD }}
         run: |
           # We use --data @- with a Heredoc (EOF) to make JSON handling 100x easier
           curl -s -k -X POST \
@@ -40,10 +39,10 @@ jobs:
                 "name": "Security Scan - veracode",
                 "git_url": "https://github.com/mfldosari/verademo",
                 "git_branch": "test",
-                "git_credentials": "$GIT_PWD",
+                "git_credentials": "$GH_TOKEN",
                 "git_username": "mfldosari",
-                "git_password": "$GIT_PWD",
-                "password": "$GIT_PWD",
+                "git_password": "$GH_TOKEN",
+                "password": "$GH_TOKEN",
                 "llm_endpoint_url": "http://172.20.30.92:11434/v1",
                 "llm_model_name": "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
                 "llm_api_key": "ollama",
