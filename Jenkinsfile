@@ -222,7 +222,7 @@ spec:
     spec:
       containers:
       - name: ${APPLICATION_NAME.toLowerCase()}
-        image: ${USE_PREBUILT_IMAGE == 'true' ? PREBUILT_IMAGE : IMAGE}
+        image: ${IMAGE}
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
