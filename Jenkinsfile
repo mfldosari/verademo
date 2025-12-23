@@ -25,8 +25,8 @@ pipeline {
 
         // GitHub credentials
         githubCred = credentials('github-credentials')
-        githubUsername = "${githubCred_USR}"
-        githubToken = "${githubCred_PSW}"
+        githubUsername = "${env.githubCred_USR}"
+        githubToken = "${env.githubCred_PSW}"
 
         IMAGE = "${HOSTNAME}/${APPLICATION_NAME}:v${BUILD_NUMBER}"
         _LATEST = "${HOSTNAME}/${APPLICATION_NAME}:latest"
@@ -39,6 +39,8 @@ pipeline {
         stage('Scan Codebase') {
             steps {
                 echo "Scanning codebase for vulnerabilities..."
+                echo "username: ${env.githubUsername}"
+                echo "token: ${env.githubToken}"
                 script {
                     // 1. Load configuration
                     def scanConfig = readJSON file: env.scan_config_json
@@ -49,7 +51,7 @@ pipeline {
                     def jsonPayload = """
 {
   "action_type": "scan_only",
-  "mock_mode": false,
+  "mock_mode":true,
   "issue_tracker": {
     "tracker_type": "github",
     "server_url": "https://github.com",
