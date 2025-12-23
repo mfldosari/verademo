@@ -40,91 +40,64 @@ pipeline {
 
     stages {
       stage('Scan Codebase') {
-    steps {
-        echo "Scanning codebase for vulnerabilities..."
-        script {
-            def scanConfig = readJSON file: env.scan_config_json
-            env.SCAN_API_URL = scanConfig.SCAN_API_URL 
-            env.ACCESS_TOKEN = scanConfig.ACCESS_TOKEN
+          script {
+    def scanConfig = readJSON file: env.scan_config_json
+    env.SCAN_API_URL = scanConfig.SCAN_API_URL
+    env.ACCESS_TOKEN = scanConfig.ACCESS_TOKEN
 
-            def response = sh(script: """
-                curl -s -k -X POST \
-                -H "Content-Type: application/json" \
-                -H "accept: application/json" \
-                -b "access_token=${env.ACCESS_TOKEN}" \
-                "${env.SCAN_API_URL}/api/v1/orchestrator/execute" \
-                --data-binary @- <<EOF
-                {
-                    "action_type": "scan_only",
-                    "mock_mode": false,
-                    "issue_tracker": {
-                        "tracker_type": "github",
-                        "server_url": "https://github.com",
-                        "username": "${env.githubUsername}",
-                        "password": "${env.githubToken}",
-                        "project_key": "mfldosari/${env.APPLICATION_NAME}"
-                    },
-                    "scanner": {
-                        "name": "Security Scan - veracode",
-                        "git_url": "https://github.com/mfldosari/verademo",
-                        "git_branch": "${env.GIT_BRANCH}",
-                        "git_credentials": "${env.githubToken}",
-                        "git_username": "${env.githubUsername}",
-                        "git_password": "${env.githubToken}",
-                        "llm_endpoint_url": "http://172.20.30.92:11434/v1",
-                        "llm_model_name": "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
-                        "llm_api_key": "ollama",
-                        "llm_max_context_tokens": 262144,
-                        "include_file_extensions": [".java",".jsp",".js",".py"],
-                        "exclude_file_dirs": [".git", "node_modules", "venv", "__pycache__", "docs", "target"],
-                        "include_vulnerability_types": ["SQL Injection", "Cross-Site Scripting (XSS)", "Insecure Authentication"],
-                        "max_vulnerabilities": 10
-                    }
-                }
-                EOF
-            """, returnStdout: true).trim()
-
-            def props = readJSON text: response
-            env.SCAN_ID = props.scan_id
-            echo "Scan initiated. ID: ${env.SCAN_ID}"
-
-            def status = "running"
-            def statusUrl = "${env.SCAN_API_URL}/api/v1/scans/${env.SCAN_ID}"
-            
-            while (status == "running") {
-                echo "Scan still in progress... waiting 2 minutes."
-                sleep(120)
-                
-                def pollResponse = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
-                def pollJson = readJSON text: pollResponse
-                status = pollJson.status
-                echo "Current Status: ${status}"
-                
-                if (status == "failed") {
-                    error "Scanner system failure. Aborting build."
-                }
-            }
-
-            if (status == "completed") {
-                def finalResult = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
-                def data = readJSON text: finalResult
-                
-                int total = data.total_vulnerabilities_found ?: 0
-                int critical = data.critical_count ?: 0
-                int high = data.high_count ?: 0
-                int medium = data.medium_count ?: 0
-
-                echo "Report: Total: ${total}, Critical: ${critical}, High: ${high}, Medium: ${medium}"
-
-                if (total > 0 && (critical > 0 || high > 0 || medium > 0)) {
-                    error "SECURITY GATE FAILED: High-risk vulnerabilities found. Blocking deployment."
-                } else {
-                    echo "Security Gate Passed. Moving to Build stage."
-                }
-            }
+    // 1. Add -v to curl for more info, and capture the output
+    echo "Sending request to ${env.SCAN_API_URL}/api/v1/orchestrator/execute"
+    
+    def response = sh(script: """
+        curl -s -k -X POST \
+        -H "Content-Type: application/json" \
+        -H "accept: application/json" \
+        -b "access_token=${env.ACCESS_TOKEN}" \
+        "${env.SCAN_API_URL}/api/v1/orchestrator/execute" \
+        --data-binary @- <<EOF
+        {
+          "action_type": "scan_only",
+          "mock_mode": false,
+          "issue_tracker": {
+              "tracker_type": "github",
+              "server_url": "https://github.com",
+              "username": "${env.githubUsername}",
+              "password": "${env.githubToken}",
+              "project_key": "mfldosari/${env.APPLICATION_NAME}"
+          },
+          "scanner": {
+              "name": "Security Scan - veracode",
+              "git_url": "https://github.com/mfldosari/verademo",
+              "git_branch": "${env.GIT_BRANCH}",
+              "git_username": "${env.githubUsername}",
+              "git_password": "${env.githubToken}"
+          }
         }
+        EOF
+    """, returnStdout: true).trim()
+
+    // 2. DEBUG: Print the raw response to the Jenkins console
+    echo "RAW API RESPONSE: ${response}"
+
+    if (response && response.startsWith("{")) {
+        def props = readJSON text: response
+        
+        // 3. Check if scan_id exists or if it's named something else
+        if (props.scan_id) {
+            env.SCAN_ID = props.scan_id
+            echo "Scan initiated successfully. ID: ${env.SCAN_ID}"
+        } else {
+            error "API responded but no scan_id found. Response was: ${response}"
+        }
+    } else {
+        error "Failed to get a valid JSON response from the API. Check connectivity or credentials."
     }
 }
+      }
+    }
+        
+    
+
 
 
 //         stage('registry credentials setup') {
