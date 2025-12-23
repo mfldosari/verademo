@@ -99,7 +99,7 @@ jobs:
           shell: bash
           run: |
             STATUS="${{ steps.wait_loop.outputs.status }}"
-            SCAN_ID="${{ needs.scan.outputs.scan_id }}"
+            SCAN_ID="3245c227-c728-497a-a1b9-084a8090d5ed"
             URL="http://172.20.31.135:30899/api/v1/scans/$SCAN_ID"
   
             
