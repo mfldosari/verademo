@@ -42,7 +42,6 @@ jobs:
                 "git_credentials": "$GH_TOKEN",
                 "git_username": "mfldosari",
                 "git_password": "$GH_TOKEN",
-                "password": "$GH_TOKEN",
                 "llm_endpoint_url": "http://172.20.30.92:11434/v1",
                 "llm_model_name": "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
                 "llm_api_key": "ollama",
