@@ -38,24 +38,15 @@ pipeline {
     stages {
         stage('Scan Codebase') {
             steps {
+                echo "Scanning codebase for vulnerabilities..."
                 script {
-                    // 1. Load configuration from JSON
-                    echo "Loading configuration from ${env.scan_config_json}..."
+                    // 1. Load configuration
                     def scanConfig = readJSON file: env.scan_config_json
                     env.SCAN_API_URL = scanConfig.SCAN_API_URL
                     env.ACCESS_TOKEN = scanConfig.ACCESS_TOKEN
 
-                    echo "Triggering scan at ${env.SCAN_API_URL}/api/v1/orchestrator/execute"
-
-                    // 2. TRIGGER SCAN (POST)
-                    // We use <<'EOF' to treat the block literally and avoid "Extra Data" JSON errors
-                    def response = sh(script: """
-                        curl -s -k -X POST \
-                        -H "Content-Type: application/json" \
-                        -H "accept: application/json" \
-                        -b "access_token=${env.ACCESS_TOKEN}" \
-                        "${env.SCAN_API_URL}/api/v1/orchestrator/execute" \
-                        --data-binary @- <<'EOF'
+                    // 2. PREPARE JSON (This ensures variables are resolved correctly)
+                    def jsonPayload = """
 {
   "action_type": "scan_only",
   "mock_mode": false,
@@ -83,7 +74,15 @@ pipeline {
     "max_vulnerabilities": 10
   }
 }
-EOF
+"""
+                    // 3. TRIGGER SCAN (POST)
+                    def response = sh(script: """
+                        curl -s -k -X POST \
+                        -H "Content-Type: application/json" \
+                        -H "accept: application/json" \
+                        -b "access_token=${env.ACCESS_TOKEN}" \
+                        "${env.SCAN_API_URL}/api/v1/orchestrator/execute" \
+                        --data '${jsonPayload.replaceAll("\n", "").trim()}'
                     """, returnStdout: true).trim()
 
                     echo "RAW API RESPONSE: ${response}"
@@ -94,7 +93,7 @@ EOF
                         error "Failed to initiate scan. API Response: ${response}"
                     }
 
-                    // 3. POLLING LOOP
+                    // 4. POLLING LOOP
                     def status = "running"
                     def statusUrl = "${env.SCAN_API_URL}/api/v1/scans/${env.SCAN_ID}"
                     
@@ -111,7 +110,7 @@ EOF
                         }
                     }
 
-                    // 4. SECURITY GATE
+                    // 5. SECURITY GATE
                     if (status == "completed") {
                         def finalResult = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
                         def data = readJSON text: finalResult
@@ -123,10 +122,10 @@ EOF
 
                         echo "Scan Summary -> Total: ${total}, Critical: ${critical}, High: ${high}, Medium: ${medium}"
 
-                        if (total >= 0) {
+                        if (total == 0) {
                             echo "Zero vulnerabilities. Proceeding."
                         } else if (critical > 0 || high > 0 || medium > 0) {
-                            error "SECURITY GATE FAILED: Found high-severity issues. Blocking build."
+                            error "SECURITY GATE FAILED: High-risk vulnerabilities found."
                         } else {
                             echo "Only low-severity issues found. Continuing build."
                         }
@@ -134,6 +133,7 @@ EOF
                 }
             }
         }
+        
 
         // stage('Build & Push') {
         //     steps {
