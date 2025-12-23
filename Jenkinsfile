@@ -189,6 +189,68 @@ EOF
             }
         }
     }
+    stage('Development Deployment') {
+            when {
+                expression { env.DEPLOY_ENV == 'Dev'}
+            }
+            steps {
+                echo "Deploying application to Development..."
+                script {
+                    sh """
+                        cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APPLICATION_NAME.toLowerCase()}
+  namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
+  labels:
+    app: ${APPLICATION_NAME.toLowerCase()}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${APPLICATION_NAME.toLowerCase()}
+  template:
+    metadata:
+      labels:
+        app: ${APPLICATION_NAME.toLowerCase()}
+    spec:
+      containers:
+      - name: ${APPLICATION_NAME.toLowerCase()}
+        image: ${USE_PREBUILT_IMAGE == 'true' ? PREBUILT_IMAGE : IMAGE}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: MYSQL_DATABASE
+          value: "blab"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APPLICATION_NAME.toLowerCase()}-service
+  namespace: ${env.DEPLOY_ENV.toLowerCase()}-${APPLICATION_NAME.toLowerCase()}
+spec:
+  type: NodePort
+  selector:
+    app: ${APPLICATION_NAME.toLowerCase()}
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    nodePort: ${DEV_NODE_PORT}
+EOF
+                    """
+                }
+                echo "Application ${APPLICATION_NAME} deployed successfully to ${env.DEPLOY_ENV}"
+            }
+        }
+
 }
 
 }
