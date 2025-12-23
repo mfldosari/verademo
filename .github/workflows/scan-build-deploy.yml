@@ -11,15 +11,20 @@ on:
 
 jobs:
   scanning:
+    name: "Scan Execution"
     runs-on: self-hosted
+    outputs:
+      scan_result: ${{ steps.scan_step.outputs.scan_output }}
+      
     steps:
       - name: Execute Veracode Security Scan
+        id: scan_step
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          # We use --data @- with a Heredoc (EOF) to make JSON handling 100x easier
-          curl -s -k -X POST \
+          
+          RESPONSE=$( curl -s -k -X POST \
             -H "Content-Type: application/json" \
             -H "accept: application/json" \
             -b "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwOi8vMTcyLjIwLjMxLjEzNTozMDAwIiwic3ViIjoiY21neXlmcWM0MDAwMHNoMTEyamZsMWU4OCIsImF1ZCI6WyJodHRwOi8vMTcyLjIwLjMxLjEzNTozMDAwIl0sImlhdCI6MTc2MDk1MzgxOSwiZXhwIjoxNzYxMDQwMjE5fQ.pprzfrkbHPEZL_3_KW0SHy4d254IciWrpcJsdx2NKKQ" \
@@ -53,6 +58,17 @@ jobs:
             }
           }
           EOF
+          )
+          echo "scan_output=$RESPONSE" >> $GITHUB_OUTPUT
+          
+  checking:
+      name: "Scan Status"
+      runs-on: ubuntu-latest
+      needs: scanning 
+      steps:
+        - name: Use data from the previous stage
+          run: |
+            echo "The scan result was: ${{ needs.scanning.outputs.scan_result }}"
 #   build:
 #     runs-on: ubuntu-latest
 #     needs: scanning
