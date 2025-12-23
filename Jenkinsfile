@@ -60,7 +60,7 @@ pipeline {
   "scanner": {
     "name": "Security Scan - veracode",
     "git_url": "https://github.com/mfldosari/verademo",
-    "git_branch": "${env.GIT_BRANCH}",
+    "git_branch": "test",
     "git_credentials": "${env.githubToken}",
     "git_username": "${env.githubUsername}",
     "git_password": "${env.githubToken}",
