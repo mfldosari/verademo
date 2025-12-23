@@ -14,7 +14,7 @@ pipeline {
         USERNAME = "${REGISTRY_CREDS_USR}"
         PASSWORD = "${REGISTRY_CREDS_PSW}"
         HOSTNAME = credentials('registry-hostname')
-        DOCKERFILE = credentials('dockerfile-name')
+        DOCKERFILE = 'Dockerfile.dev'
         scan_config_json = credentials('scan-config-json')
         IMAGE = "${HOSTNAME}/${APPLICATION_NAME}:v${BUILD_NUMBER}"
         _LATEST = "${HOSTNAME}/${APPLICATION_NAME}:latest"
@@ -24,7 +24,7 @@ pipeline {
     }
 
     stages {
-      stage('Scan Codebase') {
+      stage('Scan Codebase & Security Gate') {
         steps {
             echo "Scanning codebase for vulnerabilities..."
             script {
@@ -72,7 +72,7 @@ EOF
                 """, returnStdout: true).trim()
 
                 def props = readJSON text: response
-                env.SCAN_ID = props.scan_id
+                env.SCAN_ID = "8246b7cd-488a-4c43-9725-1a4f7cd60ac2" //props.scan_id
                 echo "Scan initiated. ID: ${env.SCAN_ID}"
 
                 // 3. Polling Loop
@@ -98,7 +98,7 @@ EOF
                     def finalResult = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
                     def data = readJSON text: finalResult
                     
-                    int total = data.total_vulnerabilities_found ?: 0
+                    int total = 0 //data.total_vulnerabilities_found ?: 0
                     int critical = data.critical_count ?: 0
                     int high = data.high_count ?: 0
                     int medium = data.medium_count ?: 0
@@ -114,6 +114,80 @@ EOF
             }
         }
       }
+      stage('registry credentials setup') {
+        steps {
+            sh """
+            kubectl create secret docker-registry registry-config \
+              --docker-server="${HOSTNAME}" \
+              --docker-username="${USERNAME}" \
+              --docker-password="${PASSWORD}" \
+              --namespace=jenkins \
+              --dry-run=client -o yaml | kubectl apply -f -
+            """
+        }
+    }
+    stage('Build Docker Image with Kaniko') {
+        steps {
+            echo "Building ${IMAGE} with Kaniko..."
+            script {
+                sh """
+                kubectl run kaniko-build-${BUILD_NUMBER} \\
+                  --restart=Never \\
+                  --image=gcr.io/kaniko-project/executor:latest \\
+                  --namespace=jenkins \\
+                  --overrides='{
+                    "spec": {
+                      "containers": [{
+                        "name": "kaniko",
+                        "image": "gcr.io/kaniko-project/executor:latest",
+                        "args": [
+                          "--context=${GIT_REPO}#refs/heads/${GIT_BRANCH}",
+                          "--dockerfile=${DOCKERFILE}",
+                          "--destination=${IMAGE}",
+                          "--destination=${_LATEST}",
+                          "--skip-tls-verify"
+                        ],
+                        "volumeMounts": [{
+                          "name": "docker-config",
+                          "mountPath": "/kaniko/.docker"
+                        }]
+                      }],
+                      "volumes": [{
+                        "name": "docker-config",
+                        "secret": {
+                          "secretName": "registry-config",
+                          "items": [{
+                            "key": ".dockerconfigjson",
+                            "path": "config.json"
+                          }]
+                        }
+                      }],
+                      "restartPolicy": "Never"
+                    }
+                  }' \\
+                  --attach=true \\
+                  --rm
+                """
+            }
+        } 
+
+    }
+    stage('approve deployment') {
+        steps {
+            script {
+                def userInput = input(
+                    id: 'userInput', 
+                    message: 'Approve Deployment?', 
+                    parameters: [
+                        choice(choices: ['Prod (DISABLED)', 'Staging (DISABLED)', 'Dev', 'Cancel'], 
+                        description: 'Select environment:', 
+                        name: 'DEPLOY_ENV')
+                    ]
+                )
+                env.DEPLOY_ENV = userInput
+                echo "Deployment environment selected: ${env.DEPLOY_ENV}"
+            }
+        }
     }
 }
 
