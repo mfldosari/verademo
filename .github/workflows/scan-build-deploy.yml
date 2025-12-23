@@ -14,7 +14,7 @@ jobs:
     name: "Scan Execution"
     runs-on: self-hosted
     outputs:
-      scan_result: ${{ steps.scan_step.outputs.scan_output }}
+      scan_id: ${{ steps.scan_step.outputs.id }}
       
     steps:
       - name: Execute Veracode Security Scan
@@ -59,7 +59,9 @@ jobs:
           }
           EOF
           )
-          echo "scan_output=$RESPONSE" >> $GITHUB_OUTPUT
+          ID=$(echo "$RESPONSE" | jq -r '.scan_id')
+
+          echo "id=$ID" >> $GITHUB_OUTPUT
           
   checking:
       name: "Scan Status"
@@ -68,7 +70,7 @@ jobs:
       steps:
         - name: Use data from the previous stage
           run: |
-            echo "The scan result was: ${{ needs.scanning.outputs.scan_result }}"
+            echo "The scan result was: ${{ needs.scanning.outputs.scan_id }}"
 #   build:
 #     runs-on: ubuntu-latest
 #     needs: scanning
