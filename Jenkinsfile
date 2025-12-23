@@ -40,7 +40,7 @@ pipeline {
             steps {
                 // withCredentials is the ONLY way to ensure these aren't null
                 withCredentials([
-                    usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN'),
+                    string(credentialsId: 'github-credentials', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN'),
                     file(credentialsId: 'scan-config-json', variable: 'SCAN_CONFIG_FILE')
                 ]) {
                     script {
