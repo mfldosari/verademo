@@ -68,9 +68,9 @@ jobs:
       runs-on: ubuntu-latest
       needs: scanning 
       steps:
-        - name: Use data from the previous stage
+        - name: Check status 
           run: |
-            echo "The scan result was: ${{ needs.scanning.outputs.scan_id }}"
+            echo "The id is: ${{ needs.scanning.outputs.scan_id }}"
 #   build:
 #     runs-on: ubuntu-latest
 #     needs: scanning
