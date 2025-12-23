@@ -65,6 +65,7 @@ jobs:
           echo "id=$ID" >> $GITHUB_OUTPUT
           
   check_status:
+      name: "Scan Status Check"
       needs: scanning
       runs-on: self-hosted
       outputs:
@@ -74,7 +75,7 @@ jobs:
           id: wait_loop
           shell: bash
           run: |
-            SCAN_ID="${{ needs.scanning.outputs.scan_uuid }}"
+            SCAN_ID="${{ needs.scanning.outputs.scan_id }}"
             URL="http://172.20.31.135:30899/api/v1/scans/$SCAN_ID"
             
             echo "Starting polling for Scan ID: $SCAN_ID"
