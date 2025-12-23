@@ -38,27 +38,25 @@ pipeline {
     stages {
         stage('Scan Codebase') {
             steps {
-                // withCredentials is the ONLY way to ensure these aren't null
+                // Binding 'string' for Secret Text and 'file' for Secret File
                 withCredentials([
-                    string(credentialsId: 'github-credentials', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN'),
-                    file(credentialsId: 'scan-config-json', variable: 'SCAN_CONFIG_FILE')
+                    string(credentialsId: "${env.GH_TOKEN_ID}", variable: 'GH_TOKEN'),
+                    file(credentialsId: "${env.SCAN_CONFIG_ID}", variable: 'SCAN_CONFIG_FILE')
                 ]) {
                     script {
-                        // 1. Load configuration from the file path provided by withCredentials
+                        // 1. Load config from the path
                         def scanConfig = readJSON file: env.SCAN_CONFIG_FILE
                         def scanApiUrl = scanConfig.SCAN_API_URL
                         def accessToken = scanConfig.ACCESS_TOKEN
 
-                        echo "Starting scan for user: ${GH_USER}"
-
-                        // 2. Build JSON (Variables GH_USER and GH_TOKEN are now guaranteed to exist)
+                        // 2. Build Payload
                         def payloadMap = [
                             action_type: "scan_only",
                             mock_mode: false,
                             issue_tracker: [
                                 tracker_type: "github",
                                 server_url: "https://github.com",
-                                username: GH_USER,
+                                username: "mfldosari",
                                 password: GH_TOKEN,
                                 project_key: "mfldosari/${env.APPLICATION_NAME}"
                             ],
@@ -67,7 +65,7 @@ pipeline {
                                 git_url: "https://github.com/mfldosari/verademo",
                                 git_branch: env.GIT_BRANCH,
                                 git_credentials: GH_TOKEN,
-                                git_username: GH_USER,
+                                git_username: "mfldosari",
                                 git_password: GH_TOKEN,
                                 llm_endpoint_url: "http://172.20.30.92:11434/v1",
                                 llm_model_name: "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
@@ -83,6 +81,7 @@ pipeline {
                         def jsonPayload = groovy.json.JsonOutput.toJson(payloadMap)
 
                         // 3. Trigger Scan
+                        // Note: Using single quotes for the -d payload to avoid shell interference
                         def response = sh(script: """
                             curl -s -k -X POST \
                             -H "Content-Type: application/json" \
@@ -98,7 +97,7 @@ pipeline {
                         if (props.scan_id) {
                             env.SCAN_ID = props.scan_id
                         } else {
-                            error "Scan ID not found. API error: ${response}"
+                            error "Scan failed to start: ${response}"
                         }
 
                         // 4. Polling Loop
@@ -117,22 +116,25 @@ pipeline {
                         if (status == "completed") {
                             def finalResult = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
                             def data = readJSON text: finalResult
+                            
                             int critical = data.critical_count ?: 0
                             int high = data.high_count ?: 0
 
+                            echo "Final Counts - Critical: ${critical}, High: ${high}"
+
                             if (critical > 0 || high > 0) {
-                                error "GATE FAILED: Found ${critical} Critical and ${high} High issues."
+                                error "GATE FAILED: High-risk vulnerabilities found."
                             } else {
-                                echo "Security Gate Passed!"
+                                echo "Gate Passed."
                             }
                         }
                     }
-
                 }
-
             }
-
         }
+    }
+}
+        
       
             
         
