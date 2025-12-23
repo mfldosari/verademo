@@ -3,6 +3,7 @@ pipeline {
 
     parameters {
         string(name: 'GIT_BRANCH_NAME', defaultValue: 'main', description: 'Git branch name to build from')
+        string(name: 'GIT_TARGET_SCANNER_BRANCH_NAME', defaultValue: 'test', description: 'Git branch name to scan from')
     }
 
     environment {
@@ -19,6 +20,7 @@ pipeline {
         _LATEST = "${HOSTNAME}/${APPLICATION_NAME}:latest"
         GIT_REPO = "${env.GIT_URL.replaceAll('https://', 'git://').replaceAll('http://', 'git://')}"
         GIT_BRANCH = "${params.GIT_BRANCH_NAME ?: (env.GIT_BRANCH ? env.GIT_BRANCH.replaceAll('origin/', '') : 'main')}"
+        GIT_TARGET_SCANNER_BRANCH_NAME = "${params.GIT_TARGET_SCANNER_BRANCH_NAME ?: (env.GIT_BRANCH ? env.GIT_BRANCH.replaceAll('origin/', '') : 'test')}"
     }
 
     stages {
@@ -52,7 +54,7 @@ pipeline {
     "scanner": {
         "name": "Security Scan - veracode",
         "git_url": "https://github.com/mfldosari/verademo",
-        "git_branch": "${env.GIT_BRANCH}",
+        "git_branch": "${env.GIT_TARGET_SCANNER_BRANCH_NAME}",
         "git_credentials": "${env.git_token}",
         "git_username": "mfldosari",
         "git_password": "${env.git_token}",
