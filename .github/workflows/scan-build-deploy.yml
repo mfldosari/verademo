@@ -150,25 +150,26 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }}
 
 # # d5db94dc3c8ea5534d4624da9357da4fef62c342
-#   deploy:
-#     runs-on: ubuntu-latest
-#     needs: build
-#     steps:
-#       - name: Authenticate to Google Cloud
-#         uses: google-github-actions/auth@v2
-#         with:
-#           credentials_json: ${{ secrets.CREDENTIALS_JSON }}
+  deploy:
+    name: "Deploy to Cloud Run"
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.CREDENTIALS_JSON }}
 
-#       - name: Set up gcloud
-#         uses: google-github-actions/setup-gcloud@v1
-#         with:
-#           project_id: ${{ secrets.GCP_PROJECT_ID }}
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-#       - name: Deploy to Cloud Run
-#         run: |
-#           gcloud run deploy ${{ secrets.GCP_SERVICE }} \
-#             --image=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }} \
-#             --platform=managed \
-#             --region=${{ secrets.GCP_REGION }} \
-#             --allow-unauthenticated \
-#             --service-account=${{ secrets.GCP_RUN_SA }}
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ secrets.GCP_SERVICE }} \
+            --image=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/verademo:${{ github.sha }} \
+            --platform=managed \
+            --region=${{ secrets.GCP_REGION }} \
+            --allow-unauthenticated \
+            --service-account=${{ secrets.GCP_RUN_SA }}
