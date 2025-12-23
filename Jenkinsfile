@@ -152,8 +152,7 @@ pipeline {
         //         """
         //     }
         // }
-    }
-}
+
 
 //         stage('registry credentials setup') {
 //             steps {
