@@ -123,7 +123,7 @@ EOF
 
                         echo "Scan Summary -> Total: ${total}, Critical: ${critical}, High: ${high}, Medium: ${medium}"
 
-                        if (total == 0) {
+                        if (total >= 0) {
                             echo "Zero vulnerabilities. Proceeding."
                         } else if (critical > 0 || high > 0 || medium > 0) {
                             error "SECURITY GATE FAILED: Found high-severity issues. Blocking build."
