@@ -64,17 +64,40 @@ jobs:
 
           echo "id=$ID" >> $GITHUB_OUTPUT
           
-  checking:
-      name: "Scan Status"
-      runs-on: ubuntu-latest
-      needs: scanning 
+  check_status:
+      needs: scanning
+      runs-on: self-hosted
+      outputs:
+        final_status: ${{ steps.wait_loop.outputs.status }}
       steps:
-        - name: Check status 
+        - name: Poll Scan Status
+          id: wait_loop
+          shell: bash
           run: |
-            echo "The id is: ${{ needs.scanning.outputs.scan_id }}"
+            SCAN_ID="${{ needs.scanning.outputs.scan_uuid }}"
+            URL="http://172.20.31.135:30899/api/v1/scans/$SCAN_ID"
+            
+            echo "Starting polling for Scan ID: $SCAN_ID"
+  
+            while true; do
+              RESPONSE=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
+              
+              CURRENT_STATUS=$(echo "$RESPONSE" | jq -r '.status')
+              echo "Current Status: $CURRENT_STATUS"
+  
+              if [[ "$CURRENT_STATUS" == "completed" || "$CURRENT_STATUS" == "failed" ]]; then
+                echo "Scan finished with status: $CURRENT_STATUS"
+                echo "status=$CURRENT_STATUS" >> $GITHUB_OUTPUT
+                break
+              fi
+  
+        
+              echo "Scan still in progress... waiting 2 minutes before next check."
+              sleep 120
+            done
 #   build:
 #     runs-on: ubuntu-latest
-#     needs: scanning
+#     needs: check_status
 #     steps:
 #       - name: Checkout code
 #         uses: actions/checkout@v3
