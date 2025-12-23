@@ -116,7 +116,7 @@ jobs:
             HIGH=0
             #$(echo "$RESULT" | jq -r '.high_count // 0')
             MEDIUM=0
-            $(echo "$RESULT" | jq -r '.medium_count // 0')
+            #$(echo "$RESULT" | jq -r '.medium_count // 0')
   
             echo "Analysis: Total: $TOTAL | Critical: $CRITICAL | High: $HIGH | Medium: $MEDIUM"
   
