@@ -24,9 +24,9 @@ pipeline {
         scan_config_json = credentials('scan-config-json')
 
         // GitHub credentials
-        githubCred = credentials('github-credentials')
-        githubUsername = "${env.githubCred_USR}"
-        githubToken = "${env.githubCred_PSW}"
+        // githubCred = credentials('github-credentials')
+        // githubUsername = "${env.githubCred_USR}"
+        // githubToken = "${env.githubCred_PSW}"
 
         IMAGE = "${HOSTNAME}/${APPLICATION_NAME}:v${BUILD_NUMBER}"
         _LATEST = "${HOSTNAME}/${APPLICATION_NAME}:latest"
@@ -38,106 +38,104 @@ pipeline {
     stages {
         stage('Scan Codebase') {
             steps {
-                echo "Scanning codebase for vulnerabilities..."
-                script {
-                    withCredentials([
+                // withCredentials is the ONLY way to ensure these aren't null
+                withCredentials([
                     usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN'),
                     file(credentialsId: 'scan-config-json', variable: 'SCAN_CONFIG_FILE')
-                ])
-                {
-                    // 1. Load configuration
-                    def scanConfig = readJSON file: env.scan_config_json
-                    env.SCAN_API_URL = scanConfig.SCAN_API_URL
-                    env.ACCESS_TOKEN = scanConfig.ACCESS_TOKEN
-                    echo "Starting scan for user: ${GH_USER}"
-                    // 2. PREPARE JSON (This ensures variables are resolved correctly)
-                    def jsonPayload = """
-{
-  "action_type": "scan_only",
-  "mock_mode":true,
-  "issue_tracker": {
-    "tracker_type": "github",
-    "server_url": "https://github.com",
-    "username": "${env.githubUsername}",
-    "password": "${env.githubToken}",
-    "project_key": "mfldosari/${env.APPLICATION_NAME}"
-  },
-  "scanner": {
-    "name": "Security Scan - veracode",
-    "git_url": "https://github.com/mfldosari/verademo",
-    "git_branch": "test",
-    "git_credentials": "${env.githubToken}",
-    "git_username": "${env.githubUsername}",
-    "git_password": "${env.githubToken}",
-    "llm_endpoint_url": "http://172.20.30.92:11434/v1",
-    "llm_model_name": "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
-    "llm_api_key": "ollama",
-    "llm_max_context_tokens": 262144,
-    "include_file_extensions": [".java",".jsp",".js",".py"],
-    "exclude_file_dirs": [".git", "node_modules", "venv", "__pycache__", "docs", "target"],
-    "include_vulnerability_types": ["SQL Injection", "Cross-Site Scripting (XSS)", "Insecure Authentication"],
-    "max_vulnerabilities": 10
-  }
-}
-"""
-                    // 3. TRIGGER SCAN (POST)
-                    def response = sh(script: """
-                        curl -s -k -X POST \
-                        -H "Content-Type: application/json" \
-                        -H "accept: application/json" \
-                        -b "access_token=${env.ACCESS_TOKEN}" \
-                        "${env.SCAN_API_URL}/api/v1/orchestrator/execute" \
-                        --data '${jsonPayload.replaceAll("\n", "").trim()}'
-                    """, returnStdout: true).trim()
+                ]) {
+                    script {
+                        // 1. Load configuration from the file path provided by withCredentials
+                        def scanConfig = readJSON file: env.SCAN_CONFIG_FILE
+                        def scanApiUrl = scanConfig.SCAN_API_URL
+                        def accessToken = scanConfig.ACCESS_TOKEN
 
-                    echo "RAW API RESPONSE: ${response}"
-                    def props = readJSON text: response
-                    env.SCAN_ID = props.scan_id
+                        echo "Starting scan for user: ${GH_USER}"
 
-                    if (!env.SCAN_ID || env.SCAN_ID == "null") {
-                        error "Failed to initiate scan. API Response: ${response}"
-                    }
+                        // 2. Build JSON (Variables GH_USER and GH_TOKEN are now guaranteed to exist)
+                        def payloadMap = [
+                            action_type: "scan_only",
+                            mock_mode: false,
+                            issue_tracker: [
+                                tracker_type: "github",
+                                server_url: "https://github.com",
+                                username: GH_USER,
+                                password: GH_TOKEN,
+                                project_key: "mfldosari/${env.APPLICATION_NAME}"
+                            ],
+                            scanner: [
+                                name: "Security Scan - veracode",
+                                git_url: "https://github.com/mfldosari/verademo",
+                                git_branch: env.GIT_BRANCH,
+                                git_credentials: GH_TOKEN,
+                                git_username: GH_USER,
+                                git_password: GH_TOKEN,
+                                llm_endpoint_url: "http://172.20.30.92:11434/v1",
+                                llm_model_name: "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
+                                llm_api_key: "ollama",
+                                llm_max_context_tokens: 262144,
+                                include_file_extensions: [".java",".jsp",".js",".py"],
+                                exclude_file_dirs: [".git", "node_modules", "venv", "__pycache__", "docs", "target"],
+                                include_vulnerability_types: ["SQL Injection", "Cross-Site Scripting (XSS)", "Insecure Authentication"],
+                                max_vulnerabilities: 10
+                            ]
+                        ]
 
-                    // 4. POLLING LOOP
-                    def status = "running"
-                    def statusUrl = "${env.SCAN_API_URL}/api/v1/scans/${env.SCAN_ID}"
-                    
-                    while (status == "running" || status == "queued" || status == "in_progress") {
-                        echo "Status is ${status}. Waiting 2 minutes..."
-                        sleep(120) 
+                        def jsonPayload = groovy.json.JsonOutput.toJson(payloadMap)
+
+                        // 3. Trigger Scan
+                        def response = sh(script: """
+                            curl -s -k -X POST \
+                            -H "Content-Type: application/json" \
+                            -H "accept: application/json" \
+                            -b "access_token=${accessToken}" \
+                            "${scanApiUrl}/api/v1/orchestrator/execute" \
+                            -d '${jsonPayload}'
+                        """, returnStdout: true).trim()
+
+                        echo "API RESPONSE: ${response}"
+                        def props = readJSON text: response
                         
-                        def pollResponse = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
-                        def pollJson = readJSON text: pollResponse
-                        status = pollJson.status
-                        
-                        if (status == "failed") {
-                            error "Scan ${env.SCAN_ID} failed on the scanner side."
-                        }
-                    }
-
-                    // 5. SECURITY GATE
-                    if (status == "completed") {
-                        def finalResult = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
-                        def data = readJSON text: finalResult
-                        
-                        int total    = data.total_vulnerabilities_found ?: 0
-                        int critical = data.critical_count ?: 0
-                        int high     = data.high_count ?: 0
-                        int medium   = data.medium_count ?: 0
-
-                        echo "Scan Summary -> Total: ${total}, Critical: ${critical}, High: ${high}, Medium: ${medium}"
-
-                        if (total == 0) {
-                            echo "Zero vulnerabilities. Proceeding."
-                        } else if (critical > 0 || high > 0 || medium > 0) {
-                            error "SECURITY GATE FAILED: High-risk vulnerabilities found."
+                        if (props.scan_id) {
+                            env.SCAN_ID = props.scan_id
                         } else {
-                            echo "Only low-severity issues found. Continuing build."
+                            error "Scan ID not found. API error: ${response}"
+                        }
+
+                        // 4. Polling Loop
+                        def status = "running"
+                        def statusUrl = "${scanApiUrl}/api/v1/scans/${env.SCAN_ID}"
+                        
+                        while (status == "running" || status == "queued" || status == "in_progress") {
+                            echo "Current Status: ${status}. Waiting 2 minutes..."
+                            sleep(120) 
+                            def pollResponse = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
+                            def pollJson = readJSON text: pollResponse
+                            status = pollJson.status
+                        }
+
+                        // 5. Security Gate
+                        if (status == "completed") {
+                            def finalResult = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
+                            def data = readJSON text: finalResult
+                            int critical = data.critical_count ?: 0
+                            int high = data.high_count ?: 0
+
+                            if (critical > 0 || high > 0) {
+                                error "GATE FAILED: Found ${critical} Critical and ${high} High issues."
+                            } else {
+                                echo "Security Gate Passed!"
+                            }
                         }
                     }
+
                 }
+
             }
+
         }
+      
+            
+        
         
 
         // stage('Build & Push') {
