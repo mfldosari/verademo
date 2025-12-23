@@ -38,63 +38,94 @@ pipeline {
         
     }
 
-    stages {
-      stage('Scan Codebase') {
+stage('Scan Codebase') {
+        steps {
           script {
-    def scanConfig = readJSON file: env.scan_config_json
-    env.SCAN_API_URL = scanConfig.SCAN_API_URL
-    env.ACCESS_TOKEN = scanConfig.ACCESS_TOKEN
+            // --- YOUR EXISTING CODE ---
+            def scanConfig = readJSON file: env.scan_config_json
+            env.SCAN_API_URL = scanConfig.SCAN_API_URL
+            env.ACCESS_TOKEN = scanConfig.ACCESS_TOKEN
 
-    // 1. Add -v to curl for more info, and capture the output
-    echo "Sending request to ${env.SCAN_API_URL}/api/v1/orchestrator/execute"
-    
-    def response = sh(script: """
-        curl -s -k -X POST \
-        -H "Content-Type: application/json" \
-        -H "accept: application/json" \
-        -b "access_token=${env.ACCESS_TOKEN}" \
-        "${env.SCAN_API_URL}/api/v1/orchestrator/execute" \
-        --data-binary @- <<EOF
-        {
-          "action_type": "scan_only",
-          "mock_mode": false,
-          "issue_tracker": {
-              "tracker_type": "github",
-              "server_url": "https://github.com",
-              "username": "${env.githubUsername}",
-              "password": "${env.githubToken}",
-              "project_key": "mfldosari/${env.APPLICATION_NAME}"
-          },
-          "scanner": {
-              "name": "Security Scan - veracode",
-              "git_url": "https://github.com/mfldosari/verademo",
-              "git_branch": "${env.GIT_BRANCH}",
-              "git_username": "${env.githubUsername}",
-              "git_password": "${env.githubToken}"
+            def response = sh(script: """
+                curl -s -k -X POST \
+                -H "Content-Type: application/json" \
+                -H "accept: application/json" \
+                -b "access_token=${env.ACCESS_TOKEN}" \
+                "${env.SCAN_API_URL}/api/v1/orchestrator/execute" \
+                --data-binary @- <<EOF
+                {
+                  "action_type": "scan_only",
+                  "mock_mode": false,
+                  "issue_tracker": {
+                      "tracker_type": "github",
+                      "server_url": "https://github.com",
+                      "username": "${env.githubUsername}",
+                      "password": "${env.githubToken}",
+                      "project_key": "mfldosari/${env.APPLICATION_NAME}"
+                  },
+                  "scanner": {
+                      "name": "Security Scan - veracode",
+                      "git_url": "https://github.com/mfldosari/verademo",
+                      "git_branch": "${env.GIT_BRANCH}",
+                      "git_username": "${env.githubUsername}",
+                      "git_password": "${env.githubToken}"
+                  }
+                }
+                EOF
+            """, returnStdout: true).trim()
+
+            echo "RAW API RESPONSE: ${response}"
+            def props = readJSON text: response
+            env.SCAN_ID = props.scan_id
+
+            if (!env.SCAN_ID || env.SCAN_ID == "null") {
+                error "Aborting: Could not retrieve a valid Scan ID from the API."
+            }
+
+            // --- STEP 2: POLLING LOOP ---
+            def status = "running"
+            def statusUrl = "${env.SCAN_API_URL}/api/v1/scans/${env.SCAN_ID}"
+            
+            echo "Waiting for scan ${env.SCAN_ID} to complete..."
+
+            while (status == "running") {
+                sleep(120) // Wait 2 minutes
+                
+                def pollResponse = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
+                def pollJson = readJSON text: pollResponse
+                status = pollJson.status
+                echo "Current Status: ${status}"
+                
+                if (status == "failed") {
+                    error "Security scanner encountered a system failure."
+                }
+            }
+
+            // --- STEP 3: QUALITY GATE ---
+            if (status == "completed") {
+                def finalResult = sh(script: "curl -s -X GET '${statusUrl}' -H 'accept: application/json'", returnStdout: true).trim()
+                def data = readJSON text: finalResult
+                
+                // Extracting counts
+                int total = data.total_vulnerabilities_found ?: 0
+                int critical = data.critical_count ?: 0
+                int high = data.high_count ?: 0
+                int medium = data.medium_count ?: 0
+
+                echo "Scan Summary -> Total: ${total}, Critical: ${critical}, High: ${high}, Medium: ${medium}"
+
+                if (critical > 0 || high > 0 || medium > 0) {
+                    error "BUILD FAILED: Security gate not met. Found high-risk vulnerabilities."
+                } else {
+                    echo "Security gate passed. No Critical, High, or Medium vulnerabilities found."
+                }
+            }
           }
         }
-        EOF
-    """, returnStdout: true).trim()
-
-    // 2. DEBUG: Print the raw response to the Jenkins console
-    echo "RAW API RESPONSE: ${response}"
-
-    if (response && response.startsWith("{")) {
-        def props = readJSON text: response
-        
-        // 3. Check if scan_id exists or if it's named something else
-        if (props.scan_id) {
-            env.SCAN_ID = props.scan_id
-            echo "Scan initiated successfully. ID: ${env.SCAN_ID}"
-        } else {
-            error "API responded but no scan_id found. Response was: ${response}"
-        }
-    } else {
-        error "Failed to get a valid JSON response from the API. Check connectivity or credentials."
-    }
-}
       }
-    }
+
+      
+    
         
     
 
