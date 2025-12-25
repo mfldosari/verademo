@@ -1,4 +1,7 @@
+
 name: Dynamic Scan
+description: 'Composite action for dynamic scan and validation'
+using: composite
 
 on:
   workflow_dispatch:
@@ -17,7 +20,7 @@ on:
         type: choice
         options:
           - scan
-          - scan_and_exploit [DISABLED]
+          - scan_and_exploit
       mock_mode:
         description: 'Mock Mode (true or false)'
         required: true
