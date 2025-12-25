@@ -1,8 +1,5 @@
-
 name: Dynamic Scan
 description: 'Composite action for dynamic scan and validation'
-using: composite
-
 on:
   workflow_dispatch:
     inputs:
@@ -20,7 +17,7 @@ on:
         type: choice
         options:
           - scan
-          - scan_and_exploit
+          - scan_and_exploit [DISABLED]
       mock_mode:
         description: 'Mock Mode (true or false)'
         required: true
@@ -72,7 +69,6 @@ on:
       git_password:
         description: 'Git Password'
         required: true
-
 jobs:
   scan:
     name: "Scan Execution"
