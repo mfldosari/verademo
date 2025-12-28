@@ -1,0 +1,103 @@
+name: Dynamic Scan
+
+on:
+  workflow_dispatch:
+    inputs:
+      HOST:
+        description: 'Host IP and Port (e.g., 172.20.31.135:30899)'
+        required: true
+        default: '172.20.31.135:30899'
+      ACCESS_TOKEN:
+        description: 'Access Token'
+        required: true
+      action_type:
+        description: 'Action Type (scan or scan_and_exploit)'
+        required: true
+        default: 'scan'
+        type: choice
+        options:
+          - scan_only
+          - scan_and_exploit
+      mock_mode:
+        description: 'Mock Mode (true or false)'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      debug_mode:
+        description: 'Debug Mode (true or false)'
+        required: true
+        default: 'false'
+        type: choice   
+        options:
+          - 'true'
+          - 'false'
+      tracker_type:
+        description: 'Issue Tracker Type (github or jira)'
+        required: true
+        default: 'github'
+        type: choice
+        options:
+          - github
+          - jira
+      server_url:
+        description: 'Issue Tracker Server URL. Enter https://github.com if tracker_type is github, or https://jira.com if tracker_type is jira.'
+        required: true
+        default: ''
+      username:
+        description: 'Issue Tracker Username'
+        required: true
+      password:
+        description: 'Issue Tracker Password'
+        required: true
+      project_key:
+        description: 'Issue Tracker Project Key'
+        required: true
+      scanner_name:
+        description: 'Scanner Name'
+        required: true
+        default: 'Security Scan - veracode'
+      git_url:
+        description: 'Git URL'
+        required: true
+        default: 'https://github.com/mfldosari/verademo'
+      git_branch:
+        description: 'Git Branch'
+        required: true
+        default: 'test'
+      git_credentials:
+        description: 'Git Credentials'
+        required: true
+      git_username:
+        description: 'Git Username'
+        required: true
+        default: 'mfldosari'
+      git_password:
+        description: 'Git Password'
+        required: true
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run Dynamic Scan Action
+        uses: mfldosari/scan-action@v1.0.0
+        with:
+          HOST: ${{ secrets.HOST }}
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          action_type: scan_only
+          mock_mode: false
+          tracker_type: github
+          server_url: https://github.com
+          username: ${{ secrets.ISSUE_TRACKER_USERNAME }}
+          password: ${{ secrets.ISSUE_TRACKER_PASSWORD }}
+          project_key: myproject
+          scanner_name: veracode
+          git_url: https://github.com/your/repo.git
+          git_branch: main
+          git_credentials: ${{ secrets.GIT_CREDENTIALS }}
+          git_username: ${{ secrets.GIT_USERNAME }}
+          git_password: ${{ secrets.GIT_PASSWORD }}
