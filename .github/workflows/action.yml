@@ -26,6 +26,14 @@ on:
         options:
           - 'true'
           - 'false'
+      debug_mode:
+        description: 'Debug Mode (true or false)'
+        required: true
+        default: 'false'
+        type: choice   
+        options:
+          - 'true'
+          - 'false'
       tracker_type:
         description: 'Issue Tracker Type (github or jira)'
         required: true
@@ -70,6 +78,31 @@ on:
         description: 'Git Password'
         required: true
 jobs:
+  debug_screen:
+    if: ${{ github.event.inputs.debug_mode == 'true' }}
+    name: "Debug Input Screen"
+    runs-on: self-hosted
+    steps:
+      - name: Display Input Parameters
+        shell: bash
+        run: |
+          echo "HOST: ${{ github.event.inputs.HOST }}"
+          echo "ACCESS_TOKEN: ${{ github.event.inputs.ACCESS_TOKEN }}"
+          echo "action_type: ${{ github.event.inputs.action_type }}"
+          echo "mock_mode: ${{ github.event.inputs.mock_mode }}"
+          echo "debug_mode: ${{ github.event.inputs.debug_mode }}"
+          echo "tracker_type: ${{ github.event.inputs.tracker_type }}"
+          echo "server_url: ${{ github.event.inputs.server_url }}"
+          echo "username: ${{ github.event.inputs.username }}"
+          echo "password: ********"
+          echo "project_key: ${{ github.event.inputs.project_key }}"
+          echo "scanner_name: ${{ github.event.inputs.scanner_name }}"
+          echo "git_url: ${{ github.event.inputs.git_url }}"
+          echo "git_branch: ${{ github.event.inputs.git_branch }}"
+          echo "git_credentials: ********"
+          echo "git_username: ${{ github.event.inputs.git_username }}"
+          echo "git_password: ********"
+        
   validate_creds:
       name: "Validate Credentials"
       runs-on: self-hosted
@@ -107,6 +140,22 @@ jobs:
             GIT_URL="${{ github.event.inputs.git_url }}"
             GIT_URL_NOPROTO=${GIT_URL#https://}
             git ls-remote --exit-code --heads "https://${{ github.event.inputs.git_username }}:${{ github.event.inputs.git_password }}@${GIT_URL_NOPROTO}" > /dev/null 2>&1
+            if [[ $? -eq 0 ]]; then
+              echo "SVC credentials valid."
+            else
+              echo "::error::SVC credentials invalid."
+              exit 1
+            fi
+        - name: "debug Screen"
+          if: ${{ github.event.inputs.debug_mode == 'true' }}
+          shell: bash
+          run: |
+            "${github.event.inputs.tracker_type}"_HTTP_CODE=$(curl -s -u "${{ github.event.inputs.username }}:${{ github.event.inputs.password }}" -o /dev/null -w "%{http_code}" "https://api.github.com/user")
+            echo "Issue Tracker HTTP code: ${tracker_type}_HTTP_CODE"
+            GIT_URL="${{ github.event.inputs.git_url }}"
+            GIT_URL_NOPROTO=${GIT_URL#https://}
+            git ls-remote --exit-code --heads "https://${{ github.event.inputs.git_username }}:${{ github.event.inputs.git_password }}@${GIT_URL_NOPROTO}" > /dev/null 2>&1
+            echo "SVC Git command exit code: $?"
             if [[ $? -eq 0 ]]; then
               echo "SVC credentials valid."
             else
@@ -161,6 +210,14 @@ jobs:
           }
           EOF
           )
+          echo "RESPONSE=$RESPONSE"
+          ID=$(echo "$RESPONSE" | jq -r '.scan_id')
+          echo "ID=$ID"
+          echo "id=$ID" >> $GITHUB_OUTPUT
+      - name: "debug Screen"
+        if: ${{ github.event.inputs.debug_mode == 'true' }}
+        shell: bash
+        run: |
           echo "RESPONSE=$RESPONSE"
           ID=$(echo "$RESPONSE" | jq -r '.scan_id')
           echo "ID=$ID"
@@ -259,7 +316,6 @@ jobs:
           URL="http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID"
           if [ "$STATUS" == "failed" ]; then
             echo "::error::Scan system failure. Blocking deployment."
-            echo "deploy=false" >> $GITHUB_OUTPUT
             exit 1
           fi
           RESULT=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
@@ -276,3 +332,29 @@ jobs:
           else
             echo "Only low-level issues found. Proceeding."
           fi
+      - name: "debug Screen"
+        if: ${{ github.event.inputs.debug_mode == 'true' }}
+        shell: bash
+        run: |
+          echo "STATUS=$STATUS"
+          echo "SCAN_ID=$SCAN_ID"
+          echo "URL=$URL"
+          RESULT=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
+          TOTAL=$(echo "$RESULT" | jq -r '.total_vulnerabilities_found // 0')
+          echo "TOTAL=$TOTAL"
+          CRITICAL=$(echo "$RESULT" | jq -r '.critical_count // 0')
+          echo "CRITICAL=$CRITICAL"
+          HIGH=$(echo "$RESULT" | jq -r '.high_count // 0')
+          echo "HIGH=$HIGH"
+          MEDIUM=$(echo "$RESULT" | jq -r '.medium_count // 0')
+          echo "MEDIUM=$MEDIUM"
+          echo "Analysis: Total: $TOTAL | Critical: $CRITICAL | High: $HIGH | Medium: $MEDIUM"
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "No vulnerabilities found. Deployment allowed."
+          elif [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ] || [ "$MEDIUM" -gt 0 ]; then
+            echo "::error::Security gate failed. Found $CRITICAL Critical, $HIGH High, $MEDIUM Medium."
+            exit 1
+          else
+            echo "Only low-level issues found. Proceeding."
+          fi
+
