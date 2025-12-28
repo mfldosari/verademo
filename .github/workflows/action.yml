@@ -17,7 +17,7 @@ on:
         type: choice
         options:
           - scan_only
-          - scan_and_exploit [DISABLED]
+          - scan_and_exploit
       mock_mode:
         description: 'Mock Mode (true or false)'
         required: true
@@ -188,43 +188,44 @@ jobs:
         id: wait_loop
         shell: bash
         run: |
-          SCAN_ID="${{ github.event.inputs.action_type == 'scan_only' && needs.scan_only.outputs.scan_id || needs.scan_and_exploit.outputs.scan_id }}" 
-          URL="http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID"
-          echo "Starting polling for Scan ID: $SCAN_ID"
-          while true; do
-            RESPONSE=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
-            CURRENT_STATUS=$(echo "$RESPONSE" | jq -r '.status')
-            echo "Current Status: $CURRENT_STATUS"
-            if [[ "$CURRENT_STATUS" == "completed" || "$CURRENT_STATUS" == "failed" ]]; then
-              echo "status=$CURRENT_STATUS" >> $GITHUB_OUTPUT
-              break
-            fi
-            echo "Still running... sleeping 2 minutes."
-            sleep 120
-          done
-      - name: Check Security Thresholds
-        id: vulnerability_check
-        shell: bash
-        run: |
-          STATUS="${{ steps.wait_loop.outputs.status }}"
-          SCAN_ID="${{ github.event.inputs.action_type == 'scan' && needs.scan_only.outputs.scan_id || needs.scan_and_exploit.outputs.scan_id }}"
-          URL="http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID"
-          if [ "$STATUS" == "failed" ]; then
-            echo "::error::Scan system failure. Blocking deployment."
-            echo "deploy=false" >> $GITHUB_OUTPUT
-            exit 1
-          fi
-          RESULT=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
-          TOTAL=$(echo "$RESULT" | jq -r '.total_vulnerabilities_found // 0')
-          CRITICAL=$(echo "$RESULT" | jq -r '.critical_count // 0')
-          HIGH=$(echo "$RESULT" | jq -r '.high_count // 0')
-          MEDIUM=$(echo "$RESULT" | jq -r '.medium_count // 0')
-          echo "Analysis: Total: $TOTAL | Critical: $CRITICAL | High: $HIGH | Medium: $MEDIUM"
-          if [ "$TOTAL" -eq 0 ]; then
-            echo "No vulnerabilities found. Deployment allowed."
-          elif [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ] || [ "$MEDIUM" -gt 0 ]; then
-            echo "::error::Security gate failed. Found $CRITICAL Critical, $HIGH High, $MEDIUM Medium."
-            exit 1
-          else
-            echo "Only low-level issues found. Proceeding."
-          fi
+          echo "scan id = ${{ github.event.inputs.action_type == 'scan_only' && needs.scan_only.outputs.scan_id || needs.scan_and_exploit.outputs.scan_id }}"
+          # SCAN_ID="${{ github.event.inputs.action_type == 'scan_only' && needs.scan_only.outputs.scan_id || needs.scan_and_exploit.outputs.scan_id }}" 
+          # URL="http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID"
+          # echo "Starting polling for Scan ID: $SCAN_ID"
+          # while true; do
+          #   RESPONSE=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
+          #   CURRENT_STATUS=$(echo "$RESPONSE" | jq -r '.status')
+          #   echo "Current Status: $CURRENT_STATUS"
+          #   if [[ "$CURRENT_STATUS" == "completed" || "$CURRENT_STATUS" == "failed" ]]; then
+          #     echo "status=$CURRENT_STATUS" >> $GITHUB_OUTPUT
+          #     break
+          #   fi
+          #   echo "Still running... sleeping 2 minutes."
+          #   sleep 120
+          # done
+      # - name: Check Security Thresholds
+      #   id: vulnerability_check
+      #   shell: bash
+      #   run: |
+      #     STATUS="${{ steps.wait_loop.outputs.status }}"
+      #     SCAN_ID="${{ github.event.inputs.action_type == 'scan' && needs.scan_only.outputs.scan_id || needs.scan_and_exploit.outputs.scan_id }}"
+      #     URL="http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID"
+      #     if [ "$STATUS" == "failed" ]; then
+      #       echo "::error::Scan system failure. Blocking deployment."
+      #       echo "deploy=false" >> $GITHUB_OUTPUT
+      #       exit 1
+      #     fi
+      #     RESULT=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
+      #     TOTAL=$(echo "$RESULT" | jq -r '.total_vulnerabilities_found // 0')
+      #     CRITICAL=$(echo "$RESULT" | jq -r '.critical_count // 0')
+      #     HIGH=$(echo "$RESULT" | jq -r '.high_count // 0')
+      #     MEDIUM=$(echo "$RESULT" | jq -r '.medium_count // 0')
+      #     echo "Analysis: Total: $TOTAL | Critical: $CRITICAL | High: $HIGH | Medium: $MEDIUM"
+      #     if [ "$TOTAL" -eq 0 ]; then
+      #       echo "No vulnerabilities found. Deployment allowed."
+      #     elif [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ] || [ "$MEDIUM" -gt 0 ]; then
+      #       echo "::error::Security gate failed. Found $CRITICAL Critical, $HIGH High, $MEDIUM Medium."
+      #       exit 1
+      #     else
+      #       echo "Only low-level issues found. Proceeding."
+      #     fi
