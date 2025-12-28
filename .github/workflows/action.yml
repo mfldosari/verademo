@@ -26,14 +26,6 @@ on:
         options:
           - 'true'
           - 'false'
-      debug_mode:
-        description: 'Debug Mode (true or false)'
-        required: true
-        default: 'false'
-        type: choice   
-        options:
-          - 'true'
-          - 'false'
       tracker_type:
         description: 'Issue Tracker Type (github or jira)'
         required: true
