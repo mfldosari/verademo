@@ -84,7 +84,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run Dynamic Scan Action
-        uses: mfldosari/RASSED@v1.0.0
+        uses: mfldosari/RASSED@v1.0.1
         with:
           HOST: ${{ github.event.inputs.HOST }}
           ACCESS_TOKEN: ${{ github.event.inputs.ACCESS_TOKEN }}
