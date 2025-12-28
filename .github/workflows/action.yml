@@ -117,7 +117,9 @@ jobs:
           }
           EOF
           )
+          echo "RESPONSE=$RESPONSE"
           ID=$(echo "$RESPONSE" | jq -r '.scan_id')
+          echo "ID=$ID"
           echo "id=$ID" >> $GITHUB_OUTPUT
   scan_and_exploit:
     if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
@@ -166,7 +168,9 @@ jobs:
           }
           EOF
           )
+          echo "RESPONSE=$RESPONSE"
           ID=$(echo "$RESPONSE" | jq -r '.scan_id')
+          echo "ID=$ID"
           echo "id=$ID" >> $GITHUB_OUTPUT  
 
   validate:
