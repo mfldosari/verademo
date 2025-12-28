@@ -172,7 +172,7 @@ jobs:
   validate:
     name: "Scan Validation"
     # needs: [scan_only, scan_and_exploit]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest #self-hosted
     if: |
       always() &&
       (
