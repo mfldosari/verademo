@@ -70,7 +70,7 @@ on:
         description: 'Git Password'
         required: true
 jobs:
-    validate_creds:
+  validate_creds:
       name: "Validate Credentials"
       runs-on: self-hosted
       steps:
