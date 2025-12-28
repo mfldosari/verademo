@@ -104,7 +104,9 @@ jobs:
           shell: bash
           run: |
             echo "Validating SVC (Git) Credentials..."
-            git ls-remote --exit-code --heads "https://${{ github.event.inputs.git_username }}:${{ github.event.inputs.git_password }}@${{ github.event.inputs.git_url#https:// }}" > /dev/null 2>&1
+            GIT_URL="${{ github.event.inputs.git_url }}"
+            GIT_URL_NOPROTO=${GIT_URL#https://}
+            git ls-remote --exit-code --heads "https://${{ github.event.inputs.git_username }}:${{ github.event.inputs.git_password }}@${GIT_URL_NOPROTO}" > /dev/null 2>&1
             if [[ $? -eq 0 ]]; then
               echo "SVC credentials valid."
             else
