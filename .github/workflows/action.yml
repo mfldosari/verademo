@@ -5,30 +5,30 @@ on:
     inputs:
       HOST:
         description: 'Host IP and Port (e.g., 172.20.31.135:30899)'
-        required: true
+        required: false
         default: '172.20.31.135:30899'
       ACCESS_TOKEN:
         description: 'Access Token'
-        required: true
+        required: false
       action_type:
         description: 'Action Type (scan or scan_and_exploit)'
-        required: true
+        required: false
         default: 'scan'
         type: choice
         options:
           - scan_only
           - scan_and_exploit
       mock_mode:
-        description: 'Mock Mode (true or false)'
-        required: true
+        description: 'Mock Mode (false or false)'
+        required: false
         default: 'false'
         type: choice
         options:
-          - 'true'
           - 'false'
+          - 'true'
       tracker_type:
         description: 'Issue Tracker Type (github or jira)'
-        required: true
+        required: false
         default: 'github'
         type: choice
         options:
@@ -36,39 +36,39 @@ on:
           - jira
       server_url:
         description: 'Issue Tracker Server URL. Enter https://github.com if tracker_type is github, or https://jira.com if tracker_type is jira.'
-        required: true
+        required: false
         default: ''
       username:
         description: 'Issue Tracker Username'
-        required: true
+        required: false
       password:
         description: 'Issue Tracker Password'
-        required: true
+        required: false
       project_key:
         description: 'Issue Tracker Project Key'
-        required: true
+        required: false
       scanner_name:
         description: 'Scanner Name'
-        required: true
+        required: false
         default: 'Security Scan - veracode'
       git_url:
         description: 'Git URL'
-        required: true
+        required: false
         default: 'https://github.com/mfldosari/verademo'
       git_branch:
         description: 'Git Branch'
-        required: true
+        required: false
         default: 'test'
       git_credentials:
         description: 'Git Credentials'
-        required: true
+        required: false
       git_username:
         description: 'Git Username'
-        required: true
+        required: false
         default: 'mfldosari'
       git_password:
         description: 'Git Password'
-        required: true
+        required: false
 jobs:
   scan:
     name: "RASSED Scan Execution"
