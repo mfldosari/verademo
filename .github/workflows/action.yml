@@ -1,5 +1,5 @@
 name: Dynamic Scan
-description: 'Composite action for dynamic scan and validation'
+
 on:
   workflow_dispatch:
     inputs:
@@ -35,9 +35,9 @@ on:
           - github
           - jira
       server_url:
-        description: 'Issue Tracker Server URL (GitHub or Jira)'
+        description: 'Issue Tracker Server URL. Enter https://github.com if tracker_type is github, or https://jira.com if tracker_type is jira.'
         required: true
-        default: 'https://github.com'
+        default: ''
       username:
         description: 'Issue Tracker Username'
         required: true
@@ -70,101 +70,159 @@ on:
         description: 'Git Password'
         required: true
 jobs:
-  scan:
-    name: "Scan Execution"
-    runs-on: self-hosted
-    outputs:
-      scan_id: ${{ steps.scan_step.outputs.id }}
+  # scan_only:
+  #   if: ${{ github.event.inputs.action_type == 'scan' }}
+  #   name: "Scan ONLY Execution"
+  #   runs-on: self-hosted
+  #   outputs:
+  #     scan_id: ${{ steps.scan_step.outputs.id }}
 
-    steps:
-      - name: Execute Veracode Security Scan
-        id: scan_step
-        shell: bash
-        run: |
-          RESPONSE=$( curl -s -k -X POST \
-            -H "Content-Type: application/json" \
-            -H "accept: application/json" \
-            -b "access_token=${{ github.event.inputs.ACCESS_TOKEN }}" \
-            "http://${{ github.event.inputs.HOST }}/api/v1/orchestrator/execute" \
-            --data-binary @- <<EOF
-          {
-            "action_type": "${{ github.event.inputs.action_type }}",
-            "mock_mode": ${{ github.event.inputs.mock_mode }},
-            "issue_tracker": {
-                "tracker_type": "${{ github.event.inputs.tracker_type }}",
-                "server_url": "${{ github.event.inputs.server_url }}",
-                "username": "${{ github.event.inputs.username }}",
-                "password": "${{ github.event.inputs.password }}",
-                "project_key": "${{ github.event.inputs.project_key }}"
-            },
-            "scanner": {
-                "name": "${{ github.event.inputs.scanner_name }}",
-                "git_url": "${{ github.event.inputs.git_url }}",
-                "git_branch": "${{ github.event.inputs.git_branch }}",
-                "git_credentials": "${{ github.event.inputs.git_credentials }}",
-                "git_username": "${{ github.event.inputs.git_username }}",
-                "git_password": "${{ github.event.inputs.git_password }}",
-                "llm_endpoint_url": "http://172.20.30.92:11434/v1",
-                "llm_model_name": "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
-                "llm_api_key": "ollama",
-                "llm_max_context_tokens": 262144,
-                "include_file_extensions": [".java",".jsp",".js",".py"],
-                "exclude_file_dirs": [".git", "node_modules", "venv", "__pycache__", "docs", "target"],
-                "include_vulnerability_types": ["SQL Injection", "Cross-Site Scripting (XSS)", "Insecure Authentication"],
-                "max_vulnerabilities": 10
-            }
-          }
-          EOF
-          )
-          ID=$(echo "$RESPONSE" | jq -r '.scan_id')
-          echo "id=$ID" >> $GITHUB_OUTPUT
+  #   steps:
+  #     - name: Execute Veracode Security Scan
+  #       id: scan_step
+  #       shell: bash
+  #       run: |
+  #         RESPONSE=$( curl -s -k -X POST \
+  #           -H "Content-Type: application/json" \
+  #           -H "accept: application/json" \
+  #           -b "access_token=${{ github.event.inputs.ACCESS_TOKEN }}" \
+  #           "http://${{ github.event.inputs.HOST }}/api/v1/orchestrator/execute" \
+  #           --data-binary @- <<EOF
+  #         {
+  #           "action_type": "${{ github.event.inputs.action_type }}",
+  #           "mock_mode": ${{ github.event.inputs.mock_mode }},
+  #           "issue_tracker": {
+  #               "tracker_type": "${{ github.event.inputs.tracker_type }}",
+  #               "server_url": "${{ github.event.inputs.server_url }}",
+  #               "username": "${{ github.event.inputs.username }}",
+  #               "password": "${{ github.event.inputs.password }}",
+  #               "project_key": "${{ github.event.inputs.project_key }}"
+  #           },
+  #           "scanner": {
+  #               "name": "${{ github.event.inputs.scanner_name }}",
+  #               "git_url": "${{ github.event.inputs.git_url }}",
+  #               "git_branch": "${{ github.event.inputs.git_branch }}",
+  #               "git_credentials": "${{ github.event.inputs.git_credentials }}",
+  #               "git_username": "${{ github.event.inputs.git_username }}",
+  #               "git_password": "${{ github.event.inputs.git_password }}",
+  #               "llm_endpoint_url": "http://172.20.30.92:11434/v1",
+  #               "llm_model_name": "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
+  #               "llm_api_key": "ollama",
+  #               "llm_max_context_tokens": 262144,
+  #               "include_file_extensions": [".java",".jsp",".js",".py"],
+  #               "exclude_file_dirs": [".git", "node_modules", "venv", "__pycache__", "docs", "target"],
+  #               "include_vulnerability_types": ["SQL Injection", "Cross-Site Scripting (XSS)", "Insecure Authentication"],
+  #               "max_vulnerabilities": 10
+  #           }
+  #         }
+  #         EOF
+  #         )
+  #         ID=$(echo "$RESPONSE" | jq -r '.scan_id')
+  #         echo "id=$ID" >> $GITHUB_OUTPUT
+  # scan_and_exploit:
+  #   if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
+  #   name: "Scan and Exploit Execution"
+  #   runs-on: self-hosted
+  #   outputs:
+  #     scan_id: ${{ steps.scan_step.outputs.id }}
+
+  #   steps:
+  #     - name: Execute Veracode Security Scan
+  #       id: scan_step
+  #       shell: bash
+  #       run: |
+  #         RESPONSE=$( curl -s -k -X POST \
+  #           -H "Content-Type: application/json" \
+  #           -H "accept: application/json" \
+  #           -b "access_token=${{ github.event.inputs.ACCESS_TOKEN }}" \
+  #           "http://${{ github.event.inputs.HOST }}/api/v1/orchestrator/execute" \
+  #           --data-binary @- <<EOF
+  #         {
+  #           "action_type": "${{ github.event.inputs.action_type }}",
+  #           "mock_mode": ${{ github.event.inputs.mock_mode }},
+  #           "issue_tracker": {
+  #               "tracker_type": "${{ github.event.inputs.tracker_type }}",
+  #               "server_url": "${{ github.event.inputs.server_url }}",
+  #               "username": "${{ github.event.inputs.username }}",
+  #               "password": "${{ github.event.inputs.password }}",
+  #               "project_key": "${{ github.event.inputs.project_key }}"
+  #           },
+  #           "scanner": {
+  #               "name": "${{ github.event.inputs.scanner_name }}",
+  #               "git_url": "${{ github.event.inputs.git_url }}",
+  #               "git_branch": "${{ github.event.inputs.git_branch }}",
+  #               "git_credentials": "${{ github.event.inputs.git_credentials }}",
+  #               "git_username": "${{ github.event.inputs.git_username }}",
+  #               "git_password": "${{ github.event.inputs.git_password }}",
+  #               "llm_endpoint_url": "http://172.20.30.92:11434/v1",
+  #               "llm_model_name": "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
+  #               "llm_api_key": "ollama",
+  #               "llm_max_context_tokens": 262144,
+  #               "include_file_extensions": [".java",".jsp",".js",".py"],
+  #               "exclude_file_dirs": [".git", "node_modules", "venv", "__pycache__", "docs", "target"],
+  #               "include_vulnerability_types": ["SQL Injection", "Cross-Site Scripting (XSS)", "Insecure Authentication"],
+  #               "max_vulnerabilities": 10
+  #           }
+  #         }
+  #         EOF
+  #         )
+  #         ID=$(echo "$RESPONSE" | jq -r '.scan_id')
+  #         echo "id=$ID" >> $GITHUB_OUTPUT  
 
   validate:
     name: "Scan Validation"
-    needs: scan
+    # needs: [scan_only, scan_and_exploit]
     runs-on: self-hosted
+    if: |
+      always() &&
+      (
+        (github.event.inputs.action_type == 'scan' && needs.scan_only.result == 'success') ||
+        (github.event.inputs.action_type == 'scan_and_exploit' && needs.scan_and_exploit.result == 'success')
+      )
     steps:
       - name: Poll Scan Status
         id: wait_loop
         shell: bash
         run: |
-          SCAN_ID="${{ needs.scan.outputs.scan_id }}" 
-          URL="http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID"
-          echo "Starting polling for Scan ID: $SCAN_ID"
-          while true; do
-            RESPONSE=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
-            CURRENT_STATUS=$(echo "$RESPONSE" | jq -r '.status')
-            echo "Current Status: $CURRENT_STATUS"
-            if [[ "$CURRENT_STATUS" == "completed" || "$CURRENT_STATUS" == "failed" ]]; then
-              echo "status=$CURRENT_STATUS" >> $GITHUB_OUTPUT
-              break
-            fi
-            echo "Still running... sleeping 2 minutes."
-            sleep 120
-          done
-      - name: Check Security Thresholds
-        id: vulnerability_check
-        shell: bash
-        run: |
-          STATUS="${{ steps.wait_loop.outputs.status }}"
-          SCAN_ID="${{ needs.scan.outputs.scan_id }}"
-          URL="http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID"
-          if [ "$STATUS" == "failed" ]; then
-            echo "::error::Scan system failure. Blocking deployment."
-            echo "deploy=false" >> $GITHUB_OUTPUT
-            exit 1
-          fi
-          RESULT=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
-          TOTAL=$(echo "$RESULT" | jq -r '.total_vulnerabilities_found // 0')
-          CRITICAL=$(echo "$RESULT" | jq -r '.critical_count // 0')
-          HIGH=$(echo "$RESULT" | jq -r '.high_count // 0')
-          MEDIUM=$(echo "$RESULT" | jq -r '.medium_count // 0')
-          echo "Analysis: Total: $TOTAL | Critical: $CRITICAL | High: $HIGH | Medium: $MEDIUM"
-          if [ "$TOTAL" -eq 0 ]; then
-            echo "No vulnerabilities found. Deployment allowed."
-          elif [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ] || [ "$MEDIUM" -gt 0 ]; then
-            echo "::error::Security gate failed. Found $CRITICAL Critical, $HIGH High, $MEDIUM Medium."
-            exit 1
-          else
-            echo "Only low-level issues found. Proceeding."
-          fi
+          # SCAN_ID="${{ github.event.inputs.action_type == 'scan' && needs.scan_only.outputs.scan_id || needs.scan_and_exploit.outputs.scan_id }}"
+          echo "${{ github.event.inputs.action_type }}"
+
+          # URL="http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID"
+          # echo "Starting polling for Scan ID: $SCAN_ID"
+          # while true; do
+          #   RESPONSE=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
+          #   CURRENT_STATUS=$(echo "$RESPONSE" | jq -r '.status')
+          #   echo "Current Status: $CURRENT_STATUS"
+          #   if [[ "$CURRENT_STATUS" == "completed" || "$CURRENT_STATUS" == "failed" ]]; then
+          #     echo "status=$CURRENT_STATUS" >> $GITHUB_OUTPUT
+          #     break
+          #   fi
+          #   echo "Still running... sleeping 2 minutes."
+          #   sleep 120
+          # done
+      # - name: Check Security Thresholds
+      #   id: vulnerability_check
+      #   shell: bash
+      #   run: |
+      #     STATUS="${{ steps.wait_loop.outputs.status }}"
+      #     SCAN_ID="${{ github.event.inputs.action_type == 'scan' && needs.scan_only.outputs.scan_id || needs.scan_and_exploit.outputs.scan_id }}"
+      #     URL="http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID"
+      #     if [ "$STATUS" == "failed" ]; then
+      #       echo "::error::Scan system failure. Blocking deployment."
+      #       echo "deploy=false" >> $GITHUB_OUTPUT
+      #       exit 1
+      #     fi
+      #     RESULT=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
+      #     TOTAL=$(echo "$RESULT" | jq -r '.total_vulnerabilities_found // 0')
+      #     CRITICAL=$(echo "$RESULT" | jq -r '.critical_count // 0')
+      #     HIGH=$(echo "$RESULT" | jq -r '.high_count // 0')
+      #     MEDIUM=$(echo "$RESULT" | jq -r '.medium_count // 0')
+      #     echo "Analysis: Total: $TOTAL | Critical: $CRITICAL | High: $HIGH | Medium: $MEDIUM"
+      #     if [ "$TOTAL" -eq 0 ]; then
+      #       echo "No vulnerabilities found. Deployment allowed."
+      #     elif [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ] || [ "$MEDIUM" -gt 0 ]; then
+      #       echo "::error::Security gate failed. Found $CRITICAL Critical, $HIGH High, $MEDIUM Medium."
+      #       exit 1
+      #     else
+      #       echo "Only low-level issues found. Proceeding."
+      #     fi
