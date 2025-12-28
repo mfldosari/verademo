@@ -77,7 +77,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run RASSED Scan Action
-        uses: mfldosari/RASSED@v0.0.3
+        uses: mfldosari/RASSED@v0.0.1
         with:
           HOST: ${{ github.event.inputs.HOST }}
           ACCESS_TOKEN: ${{ github.event.inputs.ACCESS_TOKEN }}
