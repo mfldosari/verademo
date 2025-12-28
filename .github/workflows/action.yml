@@ -9,26 +9,26 @@ on:
         default: '172.20.31.135:30899'
       ACCESS_TOKEN:
         description: 'Access Token'
-        required: false
+        required: true
       action_type:
         description: 'Action Type (scan or scan_and_exploit)'
-        required: false
+        required: true
         default: 'scan'
         type: choice
         options:
           - scan_only
           - scan_and_exploit
       mock_mode:
-        description: 'Mock Mode (false or false)'
-        required: false
+        description: 'Mock Mode (true or false)'
+        required: true
         default: 'false'
         type: choice
         options:
-          - 'false'
           - 'true'
+          - 'false'
       tracker_type:
         description: 'Issue Tracker Type (github or jira)'
-        required: false
+        required: true
         default: 'github'
         type: choice
         options:
@@ -36,35 +36,35 @@ on:
           - jira
       server_url:
         description: 'Issue Tracker Server URL. Enter https://github.com if tracker_type is github, or https://jira.com if tracker_type is jira.'
-        required: false
+        required: true
         default: ''
       username:
         description: 'Issue Tracker Username'
-        required: false
+        required: true
       password:
         description: 'Issue Tracker Password'
-        required: false
+        required: true
       project_key:
         description: 'Issue Tracker Project Key'
-        required: false
+        required: true
       scanner_name:
         description: 'Scanner Name'
-        required: false
+        required: true
         default: 'Security Scan - veracode'
       git_url:
         description: 'Git URL'
-        required: false
+        required: true
         default: 'https://github.com/mfldosari/verademo'
       git_branch:
         description: 'Git Branch'
-        required: false
+        required: true
         default: 'test'
       git_credentials:
         description: 'Git Credentials'
         required: false
       git_username:
         description: 'Git Username'
-        required: false
+        required: true
         default: 'mfldosari'
       git_password:
         description: 'Git Password'
