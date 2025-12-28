@@ -79,12 +79,12 @@ jobs:
           run: |
             echo "Validating Issue Tracker Credentials..."
             if [[ "${{ github.event.inputs.tracker_type }}" == "github" ]]; then
-              curl -s -u "${{ github.event.inputs.username }}:${{ github.event.inputs.password }}" \
-                -o /dev/null -w "%{http_code}" "${{ github.event.inputs.server_url }}/api/v3/user" | grep -q "200"
-              if [[ $? -eq 0 ]]; then
+              HTTP_CODE=$(curl -s -u "${{ github.event.inputs.username }}:${{ github.event.inputs.password }}" -o /dev/null -w "%{http_code}" "https://api.github.com/user")
+              echo "GitHub API HTTP code: $HTTP_CODE"
+              if [[ "$HTTP_CODE" == "200" ]]; then
                 echo "GitHub credentials valid."
               else
-                echo "::error::GitHub credentials invalid."
+                echo "::error::GitHub credentials invalid. HTTP code: $HTTP_CODE"
                 exit 1
               fi
             elif [[ "${{ github.event.inputs.tracker_type }}" == "jira" ]]; then
