@@ -16,7 +16,7 @@ on:
         default: 'scan'
         type: choice
         options:
-          - scan
+          - scan_only
           - scan_and_exploit [DISABLED]
       mock_mode:
         description: 'Mock Mode (true or false)'
@@ -71,7 +71,7 @@ on:
         required: true
 jobs:
   scan_only:
-    if: ${{ github.event.inputs.action_type == 'scan' }}
+    if: ${{ github.event.inputs.action_type == 'scan_only' }}
     name: "Scan ONLY Execution"
     runs-on: self-hosted
     outputs:
@@ -180,7 +180,7 @@ jobs:
     if: |
       always() &&
       (
-        (github.event.inputs.action_type == 'scan' && needs.scan_only.result == 'success') ||
+        (github.event.inputs.action_type == 'scan_only' && needs.scan_only.result == 'success') ||
         (github.event.inputs.action_type == 'scan_and_exploit' && needs.scan_and_exploit.result == 'success')
       )
     steps:
@@ -188,7 +188,7 @@ jobs:
         id: wait_loop
         shell: bash
         run: |
-          SCAN_ID="${{ github.event.inputs.action_type == 'scan' && needs.scan_only.outputs.scan_id || needs.scan_and_exploit.outputs.scan_id }}" 
+          SCAN_ID="${{ github.event.inputs.action_type == 'scan_only' && needs.scan_only.outputs.scan_id || needs.scan_and_exploit.outputs.scan_id }}" 
           URL="http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID"
           echo "Starting polling for Scan ID: $SCAN_ID"
           while true; do
