@@ -97,6 +97,3 @@ jobs:
           git_username: ${{ github.event.inputs.git_username }}
           git_password: ${{ github.event.inputs.git_password }}
 
-      - name: Print Scan Result JSON
-        run: echo "${{ steps.rassed.outputs.result_json }}"
-
