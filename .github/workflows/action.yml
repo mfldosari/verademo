@@ -120,7 +120,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Run RASSED Scan Action
-        uses: mfldosari/RASSED@v-dev0.0.5
+        uses: mfldosari/RASSED@v-dev0.0.3
         with:
           HOST: ${{ github.event.inputs.HOST }}
           ACCESS_TOKEN: ${{ github.event.inputs.ACCESS_TOKEN }}
