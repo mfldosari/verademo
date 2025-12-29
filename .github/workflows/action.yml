@@ -3,41 +3,27 @@ name: RASSED Scan
 on:
   workflow_dispatch:
     inputs:
+      # General inputs 
+      # STARTING FROM HERE =>
       HOST:
-        description: 'Host IP and Port (e.g., 172.20.31.135:30899)'
-        required: false
-        default: '172.20.31.135:30899'
+        description: 'Host IP and Port'
+        required: true 
       ACCESS_TOKEN:
         description: 'Access Token'
         required: true
       action_type:
-        description: 'Action Type (scan or scan_and_exploit)'
+        description: 'Action Type (scan_only or scan_and_exploit)'
         required: true
-        default: 'scan'
-        type: choice
-        options:
-          - scan_only
-          - scan_and_exploit
       mock_mode:
         description: 'Mock Mode (true or false)'
         required: true
         default: 'false'
-        type: choice
-        options:
-          - 'true'
-          - 'false'
       tracker_type:
         description: 'Issue Tracker Type (github or jira)'
         required: true
-        default: 'github'
-        type: choice
-        options:
-          - github
-          - jira
       server_url:
-        description: 'Issue Tracker Server URL. Enter https://github.com if tracker_type is github, or https://jira.com if tracker_type is jira.'
+        description: 'Issue Tracker Server URL'
         required: true
-        default: ''
       username:
         description: 'Issue Tracker Username'
         required: true
@@ -50,32 +36,77 @@ on:
       scanner_name:
         description: 'Scanner Name'
         required: true
-        default: 'Security Scan - veracode'
       git_url:
         description: 'Git URL'
         required: true
-        default: 'https://github.com/mfldosari/verademo'
       git_branch:
         description: 'Git Branch'
-        required: true
-        default: 'test'
+        required: false
       git_credentials:
         description: 'Git Credentials'
         required: false
       git_username:
         description: 'Git Username'
         required: true
-        default: 'mfldosari'
       git_password:
         description: 'Git Password'
         required: false
+      # ENDING HERE
+      
+      # LLM specific inputs
+      # STARTING FROM HERE =>
+      llm_endpoint_url:
+        description: 'LLM Endpoint URL'
+        required: false
+
+      llm_model_name:
+        description: 'LLM Model Name'
+        required: false
+    
+      llm_api_key:
+        description: 'LLM API Key'
+        required: false
+      
+      llm_max_context_tokens:
+        description: 'LLM Max Context Tokens'
+        required: false
+      # ENDING HERE
+
+      # If scan_and_exploit selected, these inputs are required
+      # Exploiter specific inputs
+      # STARTING FROM HERE =>
+      exploiter_llm_api_key:
+        description: 'Exploiter LLM API Key'
+        required: true
+
+      exploiter_llm_endpoint_url:
+        description: 'Exploiter LLM Endpoint URL'
+        required: true
+
+      exploiter_llm_max_context_tokens:
+        description: 'Exploiter LLM Max Context Tokens'
+        required: true
+
+      exploiter_llm_model_name:
+        description: 'Exploiter LLM Model Name'
+        required: true
+
+      exploiter_target_url:
+        description: 'Target URL for Exploitation'
+        required: true
+
+      exploiter_max_attempts:
+        description: 'Max Attempts for Exploitation'
+        required: true
+      # ENDING HERE
+      
 jobs:
   scan:
     name: "RASSED Scan Execution"
     runs-on: self-hosted
     steps:
       - name: Run RASSED Scan Action
-        uses: mfldosari/RASSED@v0.0.2
+        uses: mfldosari/RASSED@v-dev0.0.1
         with:
           HOST: ${{ github.event.inputs.HOST }}
           ACCESS_TOKEN: ${{ github.event.inputs.ACCESS_TOKEN }}
@@ -92,6 +123,18 @@ jobs:
           git_credentials: ${{ github.event.inputs.git_credentials }}
           git_username: ${{ github.event.inputs.git_username }}
           git_password: ${{ github.event.inputs.git_password }}
+          llm_endpoint_url: ${{ github.event.inputs.llm_endpoint_url }}
+          llm_model_name: ${{ github.event.inputs.llm_model_name }}
+          llm_api_key: ${{ github.event.inputs.llm_api_key }}
+          llm_max_context_tokens: ${{ github.event.inputs.llm_max_context_tokens }}
+          exploiter_llm_api_key: ${{ github.event.inputs.exploiter_llm_api_key }}
+          exploiter_llm_endpoint_url: ${{ github.event.inputs.exploiter_llm_endpoint_url }}
+          exploiter_llm_max_context_tokens: ${{ github.event.inputs.exploiter_llm_max_context_tokens }}
+          exploiter_llm_model_name: ${{ github.event.inputs.exploiter_llm_model_name }}
+          exploiter_target_url: ${{ github.event.inputs.exploiter_target_url }}
+          exploiter_max_attempts: ${{ github.event.inputs.exploiter_max_attempts }}
+
+
           
       - name: Show full analysis summary
         shell: bash
