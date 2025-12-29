@@ -21,7 +21,6 @@ on:
           - 'scan_and_exploit'
       mock_mode:
         description: 'Mock Mode (true or false)'
-        required: true
         type: choice
         default: 'false'
         options:
@@ -92,27 +91,27 @@ on:
       # STARTING FROM HERE =>
       exploiter_llm_api_key:
         description: 'Exploiter LLM API Key'
-        required: true
+        required: false
 
       exploiter_llm_endpoint_url:
         description: 'Exploiter LLM Endpoint URL'
-        required: true
+        required: false
 
       exploiter_llm_max_context_tokens:
         description: 'Exploiter LLM Max Context Tokens'
-        required: true
+        required: false
 
       exploiter_llm_model_name:
         description: 'Exploiter LLM Model Name'
-        required: true
+        required: false
 
       exploiter_target_url:
         description: 'Target URL for Exploitation'
-        required: true
+        required: false
 
       exploiter_max_attempts:
         description: 'Max Attempts for Exploitation'
-        required: true
+        required: false
       # ENDING HERE
       
 jobs:
