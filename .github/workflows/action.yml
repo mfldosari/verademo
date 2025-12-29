@@ -1,4 +1,4 @@
-name: Dynamic Scan
+name: RASSED Scan
 
 on:
   workflow_dispatch:
