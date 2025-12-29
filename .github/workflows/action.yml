@@ -81,7 +81,6 @@ jobs:
           ACCESS_TOKEN: ${{ github.event.inputs.ACCESS_TOKEN }}
           action_type: ${{ github.event.inputs.action_type }}
           mock_mode: ${{ github.event.inputs.mock_mode }}
-          debug_mode: ${{ github.event.inputs.debug_mode }}
           tracker_type: ${{ github.event.inputs.tracker_type }}
           server_url: ${{ github.event.inputs.server_url }}
           username: ${{ github.event.inputs.username }}
