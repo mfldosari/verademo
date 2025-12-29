@@ -92,4 +92,9 @@ jobs:
           git_credentials: ${{ github.event.inputs.git_credentials }}
           git_username: ${{ github.event.inputs.git_username }}
           git_password: ${{ github.event.inputs.git_password }}
-
+          
+      - name: Show full analysis summary
+        shell: bash
+        run: |
+          cat analysis_summary.json
+         
