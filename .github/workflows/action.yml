@@ -14,13 +14,27 @@ on:
       action_type:
         description: 'Action Type (scan_only or scan_and_exploit)'
         required: true
+        type: choice
+        default: 'scan_only'
+        options:
+          - 'scan_only'
+          - 'scan_and_exploit'
       mock_mode:
         description: 'Mock Mode (true or false)'
         required: true
+        type: choice
         default: 'false'
+        options:
+          - 'true'
+          - 'false'
       tracker_type:
         description: 'Issue Tracker Type (github or jira)'
         required: true
+        type: choice
+        default: 'github'
+        options:
+          - github
+          - jira
       server_url:
         description: 'Issue Tracker Server URL'
         required: true
@@ -42,6 +56,7 @@ on:
       git_branch:
         description: 'Git Branch'
         required: false
+        default: 'test'
       git_credentials:
         description: 'Git Credentials'
         required: false
