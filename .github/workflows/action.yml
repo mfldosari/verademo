@@ -74,10 +74,7 @@ jobs:
     name: "RASSED Scan Execution"
     runs-on: self-hosted
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
       - name: Run RASSED Scan Action
-        id: rassed
         uses: mfldosari/RASSED@v0.0.1
         with:
           HOST: ${{ github.event.inputs.HOST }}
