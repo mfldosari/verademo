@@ -329,12 +329,12 @@ jobs:
           fi
 
   execute_scan_only:
-    name: Execute Security Scan (Scan Only)
+    name: Trigger API Request (Scan Only)
     runs-on: self-hosted
     needs: [validate_svc, validate_issue_tracker, check_required_inputs, check_git_credentials]
     if: ${{ github.event.inputs.action_type == 'scan_only' }}
     steps:
-      - name: Execute Security Scan (Scan Only)
+      - name: Trigger API Request (Scan Only)
         if: ${{ github.event.inputs.action_type == 'scan_only' }}
         shell: bash
         run: |
@@ -380,12 +380,12 @@ jobs:
 
 
   execute_scan_exploit:
-    name: Execute Security Scan (Scan and Exploit)
+    name: Trigger API Request (Scan and Exploit)
     runs-on: self-hosted
     needs: [validate_svc, check_target_url, validate_issue_tracker, check_required_inputs, check_git_credentials]
     if: ${{github.event.inputs.action_type == 'scan_and_exploit' }}
     steps:
-      - name: Execute Security Scan (scan_and_exploit)
+      - name: Trigger API Request (Scan and Exploit)
         if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
         shell: bash
         run: |
@@ -561,43 +561,59 @@ jobs:
         run: |
           SCAN_ID=$(cat scan_id.txt)
           if [ -z "$SCAN_ID" ] || [ "$SCAN_ID" = "null" ]; then
-            echo "::error::No scan_id found. Cannot check exploitation status."
+            echo "::error::No scan_id found. Cannot extract vulnerabilities."
             exit 1
           fi
+          VULNS=$(curl -s -X 'GET' "http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID/vulnerabilities" -H 'accept: application/json')
+          echo "$VULNS" | jq -r '.[].id' > vuln_ids.txt
+          echo "Extracted vulnerability IDs:"
+          cat vuln_ids.txt
+          echo "Saved to vuln_ids.txt."
+
+          # Check exploitation status for each vulnerability
           while true; do
-            STATISTICS=$(curl -s -X 'GET' "http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID/statistics" -H 'accept: application/json')
-            STATUS=$(echo "$STATISTICS" | jq -r '.status')
-            echo "Scan exploitation status: $STATUS"
-            if [[ "$STATUS" == "completed" ]]; then
-              echo "Exploitation completed."
+            ALL_COMPLETED=true
+            for VULN_ID in $(cat vuln_ids.txt); do
+              STATUS_RESP=$(curl -s -X 'GET' "http://${{ github.event.inputs.HOST }}/api/v1/vulnerabilities/$VULN_ID/exploitations" -H 'accept: application/json')
+              STATUS=$(echo "$STATUS_RESP" | jq -r '.status')
+              echo "Vulnerability $VULN_ID exploitation status: $STATUS"
+              if [[ "$STATUS" == "failed" ]]; then
+                echo "::error::Exploitation for $VULN_ID failed."
+                exit 1
+              elif [[ "$STATUS" == "running" || "$STATUS" == "pending" ]]; then
+                ALL_COMPLETED=false
+              elif [[ "$STATUS" == "completed" ]]; then
+                continue
+              else
+                echo "::error::Unknown status $STATUS for $VULN_ID."
+                exit 1
+              fi
+            done
+            if $ALL_COMPLETED; then
+              echo "All exploitations completed."
               break
-            elif [[ "$STATUS" == "failed" ]]; then
-              echo "::error::Exploitation failed."
-              exit 1
-            elif [[ "$STATUS" == "running" || "$STATUS" == "pending" ]]; then
-              echo "Exploiting..."
-              sleep 120
             else
-              echo "::error::Unknown status $STATUS."
-              exit 1
+              echo "expliting in progress... this may take several minutes..."
+              sleep 120
             fi
           done
-
+        
   print_summary_scan:
-      name: Print Analysis Summary (Scan Only)
-      runs-on: self-hosted
-      needs: scan_status_validation
-      if: ${{ github.event.inputs.action_type == 'scan_only'  }}
-      steps:
-        - name: Print analysis summary
-          shell: bash
-          run: |
-            echo "--- Analysis Summary ---"
-            cat analysis_summary.json
+    name: Print Analysis Summary (Scan Only)
+    runs-on: self-hosted
+    needs: scan_status_validation
+    if: ${{ github.event.inputs.action_type == 'scan_only'  }}
+    steps:
+      - name: Print analysis summary
+        shell: bash
+        run: |
+          echo "--- Analysis Summary ---"
+          cat analysis_summary.json
+
   print_summary_scan_exploit:
     name: Print Analysis Summary (Scan and Exploit)
     runs-on: self-hosted
-    needs: scan_exploit_status_validation
+    needs: exploiting
     if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
     steps:
       - name: Print analysis summary
