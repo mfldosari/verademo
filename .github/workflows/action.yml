@@ -537,13 +537,23 @@ jobs:
           else
             echo "Only low-level issues found. Proceeding."
           fi
-  print_summary:
+  print_summary_scan:
       runs-on: self-hosted
-      needs: scan_validation
-      if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
+      needs: scan_status_validation
+      if: ${{ github.event.inputs.action_type == 'scan_only'  }}
       steps:
         - name: Print analysis summary
           shell: bash
           run: |
             echo "--- Analysis Summary ---"
             cat analysis_summary.json
+  print_summary_scan_exploit:
+    runs-on: self-hosted
+    needs: scan_exploit_status_validation
+    if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
+    steps:
+      - name: Print analysis summary
+        shell: bash
+        run: |
+          echo "--- Analysis Summary ---"
+          cat analysis_summary.json
