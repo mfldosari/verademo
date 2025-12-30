@@ -232,6 +232,44 @@ jobs:
           if [ "$missing" -eq 1 ]; then
             exit 1
           fi
+  check_target_url:
+      runs-on: self-hosted
+      if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
+      steps:
+        - name: Check target url connection (scan_and_exploit)
+          shell: bash
+          run: |
+            TARGET_URL="${{ github.event.inputs.exploiter_target_url }}"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$TARGET_URL")
+            CURL_EXIT_CODE=$?
+            echo "Target URL HTTP code: $HTTP_CODE"
+            if [[ $CURL_EXIT_CODE -eq 3 ]]; then
+              echo "::error::Malformed URL: $TARGET_URL (curl exit code: 3)"
+              exit 1
+            elif [[ $CURL_EXIT_CODE -eq 6 ]]; then
+              echo "::error::Could not resolve host: $TARGET_URL (curl exit code: 6)"
+              exit 1
+            elif [[ $CURL_EXIT_CODE -eq 7 ]]; then
+              echo "::error::Target URL is not reachable (connection failed). curl exit code: 7"
+              exit 1
+            elif [[ $CURL_EXIT_CODE -eq 28 ]]; then
+              echo "::error::Operation timed out for $TARGET_URL (curl exit code: 28)"
+              exit 1
+            elif [[ $CURL_EXIT_CODE -eq 35 ]]; then
+              echo "::error::SSL connect error for $TARGET_URL (curl exit code: 35)"
+              exit 1
+            elif [[ $CURL_EXIT_CODE -eq 52 ]]; then
+              echo "::error::Empty reply from server: $TARGET_URL (curl exit code: 52)"
+              exit 1
+            elif [[ $CURL_EXIT_CODE -eq 56 ]]; then
+              echo "::error::Failure in receiving network data from $TARGET_URL (curl exit code: 56)"
+              exit 1
+            elif [[ "$HTTP_CODE" == "200" ]]; then
+              echo "Target URL is reachable."
+            else
+              echo "::error::Target URL is not reachable. HTTP code: $HTTP_CODE"
+              exit 1
+            fi
 
   validate_issue_tracker:
     needs: [check_required_inputs, check_git_credentials]
@@ -284,49 +322,9 @@ jobs:
             exit 1
           fi
 
-  check_target_url:
-    runs-on: self-hosted
-    needs: [check_required_inputs, check_git_credentials]
-    if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
-    steps:
-      - name: Check target url connection (scan_and_exploit)
-        shell: bash
-        run: |
-          TARGET_URL="${{ github.event.inputs.exploiter_target_url }}"
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$TARGET_URL")
-          CURL_EXIT_CODE=$?
-          echo "Target URL HTTP code: $HTTP_CODE"
-          if [[ $CURL_EXIT_CODE -eq 3 ]]; then
-            echo "::error::Malformed URL: $TARGET_URL (curl exit code: 3)"
-            exit 1
-          elif [[ $CURL_EXIT_CODE -eq 6 ]]; then
-            echo "::error::Could not resolve host: $TARGET_URL (curl exit code: 6)"
-            exit 1
-          elif [[ $CURL_EXIT_CODE -eq 7 ]]; then
-            echo "::error::Target URL is not reachable (connection failed). curl exit code: 7"
-            exit 1
-          elif [[ $CURL_EXIT_CODE -eq 28 ]]; then
-            echo "::error::Operation timed out for $TARGET_URL (curl exit code: 28)"
-            exit 1
-          elif [[ $CURL_EXIT_CODE -eq 35 ]]; then
-            echo "::error::SSL connect error for $TARGET_URL (curl exit code: 35)"
-            exit 1
-          elif [[ $CURL_EXIT_CODE -eq 52 ]]; then
-            echo "::error::Empty reply from server: $TARGET_URL (curl exit code: 52)"
-            exit 1
-          elif [[ $CURL_EXIT_CODE -eq 56 ]]; then
-            echo "::error::Failure in receiving network data from $TARGET_URL (curl exit code: 56)"
-            exit 1
-          elif [[ "$HTTP_CODE" == "200" ]]; then
-            echo "Target URL is reachable."
-          else
-            echo "::error::Target URL is not reachable. HTTP code: $HTTP_CODE"
-            exit 1
-          fi
-
   execute_scan:
     runs-on: self-hosted
-    needs: [validate_svc, check_target_url, validate_issue_tracker, check_required_inputs, check_git_credentials]
+    needs: [validate_svc, validate_issue_tracker, check_required_inputs, check_git_credentials]
     steps:
       - name: Execute Security Scan (Scan Only)
         if: ${{ github.event.inputs.action_type == 'scan_only' }}
