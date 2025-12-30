@@ -234,6 +234,7 @@ jobs:
           fi
   check_target_url:
       runs-on: self-hosted
+      needs: [check_required_inputs]
       if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
       steps:
         - name: Check target url connection (scan_and_exploit)
