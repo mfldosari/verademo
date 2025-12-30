@@ -234,6 +234,7 @@ jobs:
           fi
 
   validate_issue_tracker:
+    needs: [check_required_inputs, check_git_credentials]
     runs-on: self-hosted
     steps:
       - name: Validate Issue Tracker Credentials
@@ -266,6 +267,7 @@ jobs:
 
   validate_svc:
     runs-on: self-hosted
+    needs: [check_required_inputs, check_git_credentials]
     steps:
       - name: Validate SVC Credentials
         shell: bash
@@ -284,6 +286,7 @@ jobs:
 
   check_target_url:
     runs-on: self-hosted
+    needs: [check_required_inputs, check_git_credentials]
     if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
     steps:
       - name: Check target url connection (scan_and_exploit)
@@ -485,7 +488,3 @@ jobs:
           run: |
             echo "--- Analysis Summary ---"
             cat analysis_summary.json
-
-
-
-
