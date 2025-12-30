@@ -127,7 +127,6 @@ jobs:
 
   check_required_inputs:
     runs-on: self-hosted
-    needs: check_git_credentials
     steps:
       - name: Check Required Inputs (scan_only)
         if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
@@ -236,7 +235,6 @@ jobs:
 
   validate_issue_tracker:
     runs-on: self-hosted
-    needs: check_required_inputs
     steps:
       - name: Validate Issue Tracker Credentials
         shell: bash
@@ -268,7 +266,6 @@ jobs:
 
   validate_svc:
     runs-on: self-hosted
-    needs: validate_issue_tracker
     steps:
       - name: Validate SVC Credentials
         shell: bash
@@ -287,7 +284,6 @@ jobs:
 
   check_target_url:
     runs-on: self-hosted
-    needs: validate_svc
     if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
     steps:
       - name: Check target url connection (scan_and_exploit)
