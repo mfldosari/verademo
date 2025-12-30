@@ -575,19 +575,25 @@ jobs:
             ALL_COMPLETED=true
             for VULN_ID in $(cat vuln_ids.txt); do
               STATUS_RESP=$(curl -s -X 'GET' "http://${{ github.event.inputs.HOST }}/api/v1/vulnerabilities/$VULN_ID/exploitations" -H 'accept: application/json')
-              STATUS=$(echo "$STATUS_RESP" | jq -r '.status')
-              echo "Vulnerability $VULN_ID exploitation status: $STATUS"
-              if [[ "$STATUS" == "failed" ]]; then
-                echo "::error::Exploitation for $VULN_ID failed."
-                exit 1
-              elif [[ "$STATUS" == "running" || "$STATUS" == "pending" ]]; then
-                ALL_COMPLETED=false
-              elif [[ "$STATUS" == "completed" ]]; then
+              STATUSES=$(echo "$STATUS_RESP" | jq -r '.[].status')
+              if [ -z "$STATUSES" ]; then
+                echo "No exploitations found for $VULN_ID. Skipping."
                 continue
-              else
-                echo "::error::Unknown status $STATUS for $VULN_ID."
-                exit 1
               fi
+              for STATUS in $STATUSES; do
+                echo "Vulnerability $VULN_ID exploitation status: $STATUS"
+                if [[ "$STATUS" == "failed" ]]; then
+                  echo "::error::Exploitation for $VULN_ID failed."
+                  exit 1
+                elif [[ "$STATUS" == "running" || "$STATUS" == "pending" ]]; then
+                  ALL_COMPLETED=false
+                elif [[ "$STATUS" == "completed" ]]; then
+                  continue
+                else
+                  echo "::error::Unknown status $STATUS for $VULN_ID."
+                  exit 1
+                fi
+              done
             done
             if $ALL_COMPLETED; then
               echo "All exploitations completed."
