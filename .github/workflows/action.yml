@@ -115,6 +115,7 @@ on:
       # ENDING HERE
 jobs:
   check_git_credentials:
+    name: Check Git Credentials Provided
     runs-on: self-hosted
     steps:
       - name: Check git_password or git_credentials provided
@@ -126,6 +127,7 @@ jobs:
           fi
 
   check_required_inputs:
+    name: Check Required Inputs
     runs-on: self-hosted
     steps:
       - name: Check Required Inputs (scan_only)
@@ -233,6 +235,7 @@ jobs:
             exit 1
           fi
   check_target_url:
+      name: Check Target URL Connection
       runs-on: self-hosted
       needs: [check_required_inputs]
       if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
@@ -273,6 +276,7 @@ jobs:
             fi
 
   validate_issue_tracker:
+    name: Validate Issue Tracker Credentials
     needs: [check_required_inputs, check_git_credentials]
     runs-on: self-hosted
     steps:
@@ -305,6 +309,7 @@ jobs:
           fi
 
   validate_svc:
+    name: Validate SVC (Git) Credentials
     runs-on: self-hosted
     needs: [check_required_inputs, check_git_credentials]
     steps:
@@ -324,6 +329,7 @@ jobs:
           fi
 
   execute_scan_only:
+    name: Execute Security Scan (Scan Only)
     runs-on: self-hosted
     needs: [validate_svc, validate_issue_tracker, check_required_inputs, check_git_credentials]
     if: ${{ github.event.inputs.action_type == 'scan_only' }}
@@ -374,6 +380,7 @@ jobs:
 
 
   execute_scan_exploit:
+    name: Execute Security Scan (Scan and Exploit)
     runs-on: self-hosted
     needs: [validate_svc, check_target_url, validate_issue_tracker, check_required_inputs, check_git_credentials]
     if: ${{github.event.inputs.action_type == 'scan_and_exploit' }}
@@ -431,6 +438,7 @@ jobs:
           echo "$ID" > scan_id.txt
 
   scan_status_validation:
+    name: Scanning...    
     runs-on: self-hosted
     needs: execute_scan_only
     if: ${{ github.event.inputs.action_type == 'scan_only' }}
@@ -453,7 +461,7 @@ jobs:
             if [[ "$CURRENT_STATUS" == "completed" || "$CURRENT_STATUS" == "failed" ]]; then
               break
             fi
-            echo "Still running... sleeping 2 minutes."
+            echo "Scanning... this may take several minutes..."
             sleep 120
           done
           if [[ "$CURRENT_STATUS" == "failed" ]]; then
@@ -486,6 +494,7 @@ jobs:
             echo "Only low-level issues found. Proceeding."
           fi
   scan_exploit_status_validation:
+    name: Scanning...
     runs-on: self-hosted
     needs: execute_scan_exploit
     if: ${{github.event.inputs.action_type == 'scan_and_exploit' }}
@@ -508,7 +517,7 @@ jobs:
             if [[ "$CURRENT_STATUS" == "completed" || "$CURRENT_STATUS" == "failed" ]]; then
               break
             fi
-            echo "Still running... sleeping 2 minutes."
+            echo "Scanning... this may take a while.."
             sleep 120
           done
           if [[ "$CURRENT_STATUS" == "failed" ]]; then
@@ -540,7 +549,42 @@ jobs:
           else
             echo "Only low-level issues found. Proceeding."
           fi
+
+  exploiting:
+    name: Exploiting...
+    runs-on: self-hosted
+    needs: scan_exploit_status_validation
+    if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
+    steps:
+      - name: Exploiting
+        shell: bash
+        run: |
+          SCAN_ID=$(cat scan_id.txt)
+          if [ -z "$SCAN_ID" ] || [ "$SCAN_ID" = "null" ]; then
+            echo "::error::No scan_id found. Cannot check exploitation status."
+            exit 1
+          fi
+          while true; do
+            STATISTICS=$(curl -s -X 'GET' "http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID/statistics" -H 'accept: application/json')
+            STATUS=$(echo "$STATISTICS" | jq -r '.status')
+            echo "Scan exploitation status: $STATUS"
+            if [[ "$STATUS" == "completed" ]]; then
+              echo "Exploitation completed."
+              break
+            elif [[ "$STATUS" == "failed" ]]; then
+              echo "::error::Exploitation failed."
+              exit 1
+            elif [[ "$STATUS" == "running" || "$STATUS" == "pending" ]]; then
+              echo "Exploiting..."
+              sleep 120
+            else
+              echo "::error::Unknown status $STATUS."
+              exit 1
+            fi
+          done
+
   print_summary_scan:
+      name: Print Analysis Summary (Scan Only)
       runs-on: self-hosted
       needs: scan_status_validation
       if: ${{ github.event.inputs.action_type == 'scan_only'  }}
@@ -551,6 +595,7 @@ jobs:
             echo "--- Analysis Summary ---"
             cat analysis_summary.json
   print_summary_scan_exploit:
+    name: Print Analysis Summary (Scan and Exploit)
     runs-on: self-hosted
     needs: scan_exploit_status_validation
     if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
