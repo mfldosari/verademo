@@ -90,27 +90,27 @@ on:
       # Exploiter specific inputs
       # STARTING FROM HERE =>
       exploiter_llm_api_key:
-        description: 'Exploiter LLM API Key'
+        description: 'Exploiter LLM API Key (fill if scan type is set to scan_and_exploit)'
         required: false
 
       exploiter_llm_endpoint_url:
-        description: 'Exploiter LLM Endpoint URL'
+        description: 'Exploiter LLM Endpoint URL (fill if scan type is set to scan_and_exploit)'
         required: false
 
       exploiter_llm_max_context_tokens:
-        description: 'Exploiter LLM Max Context Tokens'
+        description: 'Exploiter LLM Max Context Tokens (fill if scan type is set to scan_and_exploit)'
         required: false
 
       exploiter_llm_model_name:
-        description: 'Exploiter LLM Model Name'
+        description: 'Exploiter LLM Model Name (fill if scan type is set to scan_and_exploit)'
         required: false
 
       exploiter_target_url:
-        description: 'Target URL for Exploitation'
+        description: 'Target URL for Exploitation (fill if scan type is set to scan_and_exploit)'
         required: false
 
       exploiter_max_attempts:
-        description: 'Max Attempts for Exploitation'
+        description: 'Max Attempts for Exploitation (fill if scan type is set to scan_and_exploit)'
         required: false
       # ENDING HERE
 jobs:
@@ -371,7 +371,7 @@ jobs:
           ID=$(echo "$RESPONSE" | jq -r '.scan_id')
           echo "ID=$ID"
           echo "$ID" > scan_id.txt
-      - name: Execute Security Scan (Scan and Exploit)
+      - name: Execute Security Scan (scan_and_exploit)
         if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
         shell: bash
         run: |
