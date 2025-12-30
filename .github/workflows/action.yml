@@ -323,7 +323,7 @@ jobs:
 
   execute_scan:
     runs-on: self-hosted
-    needs: [validate_svc, check_target_url]
+    needs: [validate_svc, check_target_url, validate_issue_tracker, check_required_inputs, check_git_credentials]
     steps:
       - name: Execute Security Scan (Scan Only)
         if: ${{ github.event.inputs.action_type == 'scan_only' }}
