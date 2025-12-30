@@ -113,45 +113,383 @@ on:
         description: 'Max Attempts for Exploitation'
         required: false
       # ENDING HERE
-      
 jobs:
-  scan:
-    name: "RASSED Scan Execution"
+  check_git_credentials:
     runs-on: self-hosted
     steps:
-      - name: Run RASSED Scan Action
-        uses: mfldosari/RASSED@v0.0.6
-        with:
-          HOST: ${{ github.event.inputs.HOST }}
-          ACCESS_TOKEN: ${{ github.event.inputs.ACCESS_TOKEN }}
-          action_type: ${{ github.event.inputs.action_type }}
-          mock_mode: ${{ github.event.inputs.mock_mode }}
-          tracker_type: ${{ github.event.inputs.tracker_type }}
-          server_url: ${{ github.event.inputs.server_url }}
-          username: ${{ github.event.inputs.username }}
-          password: ${{ github.event.inputs.password }}
-          project_key: ${{ github.event.inputs.project_key }}
-          scanner_name: ${{ github.event.inputs.scanner_name }}
-          git_url: ${{ github.event.inputs.git_url }}
-          git_branch: ${{ github.event.inputs.git_branch }}
-          git_credentials: ${{ github.event.inputs.git_credentials }}
-          git_username: ${{ github.event.inputs.git_username }}
-          git_password: ${{ github.event.inputs.git_password }}
-          llm_endpoint_url: ${{ github.event.inputs.llm_endpoint_url }}
-          llm_model_name: ${{ github.event.inputs.llm_model_name }}
-          llm_api_key: ${{ github.event.inputs.llm_api_key }}
-          llm_max_context_tokens: ${{ github.event.inputs.llm_max_context_tokens }}
-          exploiter_llm_api_key: ${{ github.event.inputs.exploiter_llm_api_key }}
-          exploiter_llm_endpoint_url: ${{ github.event.inputs.exploiter_llm_endpoint_url }}
-          exploiter_llm_max_context_tokens: ${{ github.event.inputs.exploiter_llm_max_context_tokens }}
-          exploiter_llm_model_name: ${{ github.event.inputs.exploiter_llm_model_name }}
-          exploiter_target_url: ${{ github.event.inputs.exploiter_target_url }}
-          exploiter_max_attempts: ${{ github.event.inputs.exploiter_max_attempts }}
-
-
-          
-      - name: Show full analysis summary
+      - name: Check git_password or git_credentials provided
         shell: bash
         run: |
-          cat analysis_summary.json
-         
+          if [ -z "${{ github.event.inputs.git_password }}" ] && [ -z "${{ github.event.inputs.git_credentials }}" ]; then
+            echo "::error::You must provide at least one of 'git_password' or 'git_credentials'."
+            exit 1
+          fi
+
+  check_required_inputs:
+    runs-on: self-hosted
+    needs: check_git_credentials
+    steps:
+      - name: Check Required Inputs (scan_only)
+        if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
+        shell: bash
+        run: |
+          missing=0
+          if [ -z "${{ github.event.inputs.HOST }}" ]; then
+            echo "::error::Input 'HOST' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.ACCESS_TOKEN }}" ]; then
+            echo "::error::Input 'ACCESS_TOKEN' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.action_type }}" ]; then
+            echo "::error::Input 'action_type' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.tracker_type }}" ]; then
+            echo "::error::Input 'tracker_type' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.server_url }}" ]; then
+            echo "::error::Input 'server_url' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.username }}" ]; then
+            echo "::error::Input 'username' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.password }}" ]; then
+            echo "::error::Input 'password' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.project_key }}" ]; then
+            echo "::error::Input 'project_key' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.scanner_name }}" ]; then
+            echo "::error::Input 'scanner_name' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.git_url }}" ]; then
+            echo "::error::Input 'git_url' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.git_branch }}" ]; then
+            echo "::error::Input 'git_branch' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.git_username }}" ]; then
+            echo "::error::Input 'git_username' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.llm_endpoint_url }}" ]; then
+            echo "::error::Input 'llm_endpoint_url' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.llm_model_name }}" ]; then
+            echo "::error::Input 'llm_model_name' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.llm_api_key }}" ]; then
+            echo "::error::Input 'llm_api_key' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.llm_max_context_tokens }}" ]; then
+            echo "::error::Input 'llm_max_context_tokens' is required but not provided."
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
+            exit 1
+          fi
+      - name: Check Required Inputs (scan_and_exploit)
+        if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
+        shell: bash
+        run: |
+          missing=0
+          if [ -z "${{ github.event.inputs.exploiter_llm_api_key }}" ]; then
+            echo "::error::Input 'exploiter_llm_api_key' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.exploiter_llm_endpoint_url }}" ]; then
+            echo "::error::Input 'exploiter_llm_endpoint_url' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.exploiter_llm_max_context_tokens }}" ]; then
+            echo "::error::Input 'exploiter_llm_max_context_tokens' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.exploiter_llm_model_name }}" ]; then
+            echo "::error::Input 'exploiter_llm_model_name' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.exploiter_target_url }}" ]; then
+            echo "::error::Input 'exploiter_target_url' is required but not provided."
+            missing=1
+          fi
+          if [ -z "${{ github.event.inputs.exploiter_max_attempts }}" ]; then
+            echo "::error::Input 'exploiter_max_attempts' is required but not provided."
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
+            exit 1
+          fi
+
+  validate_issue_tracker:
+    runs-on: self-hosted
+    needs: check_required_inputs
+    steps:
+      - name: Validate Issue Tracker Credentials
+        shell: bash
+        if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
+        run: |
+          echo "Validating Issue Tracker Credentials..."
+          if [[ "${{ github.event.inputs.tracker_type }}" == "github" ]]; then
+            HTTP_CODE=$(curl -s -u "${{ github.event.inputs.username }}:${{ github.event.inputs.password }}" -o /dev/null -w "%{http_code}" "https://api.github.com/user")
+            echo "GitHub API HTTP code: $HTTP_CODE"
+            if [[ "$HTTP_CODE" == "200" ]]; then
+              echo "GitHub credentials valid."
+            else
+              echo "::error::GitHub credentials invalid. HTTP code: $HTTP_CODE"
+              exit 1
+            fi
+          elif [[ "${{ github.event.inputs.tracker_type }}" == "jira" ]]; then
+            curl -s -u "${{ github.event.inputs.username }}:${{ github.event.inputs.password }}" \
+              -o /dev/null -w "%{http_code}" "${{ github.event.inputs.server_url }}/rest/api/2/myself" | grep -q "200"
+            if [[ $? -eq 0 ]]; then
+              echo "Jira credentials valid."
+            else
+              echo "::error::Jira credentials invalid."
+              exit 1
+            fi
+          else
+            echo "::error::Unknown tracker_type."
+            exit 1
+          fi
+
+  validate_svc:
+    runs-on: self-hosted
+    needs: validate_issue_tracker
+    steps:
+      - name: Validate SVC Credentials
+        shell: bash
+        if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
+        run: |
+          echo "Validating SVC (Git) Credentials..."
+          GIT_URL="${{ github.event.inputs.git_url }}"
+          GIT_URL_NOPROTO=${GIT_URL#https://}
+          git ls-remote --exit-code --heads "https://${{ github.event.inputs.git_username }}:${{ github.event.inputs.git_password }}@${GIT_URL_NOPROTO}" > /dev/null 2>&1
+          if [[ $? -eq 0 ]]; then
+            echo "SVC credentials valid."
+          else
+            echo "::error::SVC credentials invalid."
+            exit 1
+          fi
+
+  check_target_url:
+    runs-on: self-hosted
+    needs: validate_svc
+    if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
+    steps:
+      - name: Check target url connection (scan_and_exploit)
+        shell: bash
+        run: |
+          TARGET_URL="${{ github.event.inputs.exploiter_target_url }}"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$TARGET_URL")
+          CURL_EXIT_CODE=$?
+          echo "Target URL HTTP code: $HTTP_CODE"
+          if [[ $CURL_EXIT_CODE -eq 3 ]]; then
+            echo "::error::Malformed URL: $TARGET_URL (curl exit code: 3)"
+            exit 1
+          elif [[ $CURL_EXIT_CODE -eq 6 ]]; then
+            echo "::error::Could not resolve host: $TARGET_URL (curl exit code: 6)"
+            exit 1
+          elif [[ $CURL_EXIT_CODE -eq 7 ]]; then
+            echo "::error::Target URL is not reachable (connection failed). curl exit code: 7"
+            exit 1
+          elif [[ $CURL_EXIT_CODE -eq 28 ]]; then
+            echo "::error::Operation timed out for $TARGET_URL (curl exit code: 28)"
+            exit 1
+          elif [[ $CURL_EXIT_CODE -eq 35 ]]; then
+            echo "::error::SSL connect error for $TARGET_URL (curl exit code: 35)"
+            exit 1
+          elif [[ $CURL_EXIT_CODE -eq 52 ]]; then
+            echo "::error::Empty reply from server: $TARGET_URL (curl exit code: 52)"
+            exit 1
+          elif [[ $CURL_EXIT_CODE -eq 56 ]]; then
+            echo "::error::Failure in receiving network data from $TARGET_URL (curl exit code: 56)"
+            exit 1
+          elif [[ "$HTTP_CODE" == "200" ]]; then
+            echo "Target URL is reachable."
+          else
+            echo "::error::Target URL is not reachable. HTTP code: $HTTP_CODE"
+            exit 1
+          fi
+
+  execute_scan:
+    runs-on: self-hosted
+    needs: [validate_svc, check_target_url]
+    steps:
+      - name: Execute Security Scan (Scan Only)
+        if: ${{ github.event.inputs.action_type == 'scan_only' }}
+        shell: bash
+        run: |
+          RESPONSE=$( curl -s -k -X POST \
+            -H "Content-Type: application/json" \
+            -H "accept: application/json" \
+            -b "access_token=${{ github.event.inputs.ACCESS_TOKEN }}" \
+            "http://${{ github.event.inputs.HOST }}/api/v1/orchestrator/execute" \
+            --data-binary @- <<EOF
+          {
+            "action_type": "${{ github.event.inputs.action_type }}",
+            "mock_mode": ${{ github.event.inputs.mock_mode }},
+            "issue_tracker": {
+                "tracker_type": "${{ github.event.inputs.tracker_type }}",
+                "server_url": "${{ github.event.inputs.server_url }}",
+                "username": "${{ github.event.inputs.username }}",
+                "password": "${{ github.event.inputs.password }}",
+                "project_key": "${{ github.event.inputs.project_key }}"
+            },
+            "scanner": {
+                "name": "${{ github.event.inputs.scanner_name }}",
+                "git_url": "${{ github.event.inputs.git_url }}",
+                "git_branch": "${{ github.event.inputs.git_branch }}",
+                "git_credentials": "${{ github.event.inputs.git_credentials }}",
+                "git_username": "${{ github.event.inputs.git_username }}",
+                "git_password": "${{ github.event.inputs.git_password }}",
+                "llm_endpoint_url": "http://172.20.30.92:11434/v1",
+                "llm_model_name": "SimonPu/qwen3-coder:30B-Instruct_Q4_K_XL",
+                "llm_api_key": "ollama",
+                "llm_max_context_tokens": 262144,
+                "include_file_extensions": [".java",".jsp",".js",".py"],
+                "exclude_file_dirs": [".git", "node_modules", "venv", "__pycache__", "docs", "target"],
+                "include_vulnerability_types": ["SQL Injection", "Cross-Site Scripting (XSS)", "Insecure Authentication"],
+                "max_vulnerabilities": 10
+            }
+          }
+          EOF
+          )
+          echo "RESPONSE=$RESPONSE"
+          ID=$(echo "$RESPONSE" | jq -r '.scan_id')
+          echo "ID=$ID"
+          echo "$ID" > scan_id.txt
+      - name: Execute Security Scan (Scan and Exploit)
+        if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
+        shell: bash
+        run: |
+          RESPONSE=$( curl -s -k -X POST \
+            -H "Content-Type: application/json" \
+            -H "accept: application/json" \
+            -b "access_token=${{ github.event.inputs.ACCESS_TOKEN }}" \
+            "http://${{ github.event.inputs.HOST }}/api/v1/orchestrator/execute" \
+            --data-binary @- <<EOF
+          {
+            "action_type": "${{ github.event.inputs.action_type }}",
+            "mock_mode": ${{ github.event.inputs.mock_mode }},
+            "issue_tracker": {
+                "tracker_type": "${{ github.event.inputs.tracker_type }}",
+                "server_url": "${{ github.event.inputs.server_url }}",
+                "username": "${{ github.event.inputs.username }}",
+                "password": "${{ github.event.inputs.password }}",
+                "project_key": "${{ github.event.inputs.project_key }}"
+            },
+            "scanner": {
+                "name": "${{ github.event.inputs.scanner_name }}",
+                "git_url": "${{ github.event.inputs.git_url }}",
+                "git_branch": "${{ github.event.inputs.git_branch }}",
+                "git_credentials": "${{ github.event.inputs.git_credentials }}",
+                "git_username": "${{ github.event.inputs.git_username }}",
+                "git_password": "${{ github.event.inputs.git_password }}",
+                "llm_endpoint_url": "${{ github.event.inputs.llm_endpoint_url }}",
+                "llm_model_name": "${{ github.event.inputs.llm_model_name }}",
+                "llm_api_key": "${{ github.event.inputs.llm_api_key }}",
+                "llm_max_context_tokens": ${{ github.event.inputs.llm_max_context_tokens }},
+                "include_file_extensions": [".java",".jsp",".js",".py"],
+                "exclude_file_dirs": [".git", "node_modules", "venv", "__pycache__", "docs", "target"],
+                "include_vulnerability_types": ["SQL Injection", "Cross-Site Scripting (XSS)", "Insecure Authentication"],
+                "max_vulnerabilities": 10
+            },
+            "exploiter": {
+                "exploiter_llm_api_key": "${{ github.event.inputs.exploiter_llm_api_key }}",
+                "exploiter_llm_endpoint_url": "${{ github.event.inputs.exploiter_llm_endpoint_url }}",
+                "exploiter_llm_max_context_tokens": ${{ github.event.inputs.exploiter_llm_max_context_tokens }},
+                "exploiter_llm_model_name": "${{ github.event.inputs.exploiter_llm_model_name }}",
+                "max_attempts": ${{ github.event.inputs.exploiter_max_attempts }},
+                "target_url": "${{ github.event.inputs.exploiter_target_url }}"
+            }
+          }
+          EOF
+          )
+          echo "RESPONSE=$RESPONSE"
+          ID=$(echo "$RESPONSE" | jq -r '.scan_id')
+          echo "ID=$ID"
+          echo "$ID" > scan_id.txt
+
+  scan_validation:
+    runs-on: self-hosted
+    needs: execute_scan
+    if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
+    steps:
+      - name: Scan Validation & Check Security Thresholds
+        id: scan_validation
+        shell: bash
+        run: |
+          SCAN_ID=$(cat scan_id.txt)
+          if [ -z "$SCAN_ID" ] || [ "$SCAN_ID" = "null" ]; then
+            echo "::error::No scan_id found. Cannot validate scan."
+            exit 1
+          fi
+          URL="http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID"
+          echo "Starting polling for Scan ID: $SCAN_ID"
+          while true; do
+            RESPONSE=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
+            CURRENT_STATUS=$(echo "$RESPONSE" | jq -r '.status')
+            echo "Current Status: $CURRENT_STATUS"
+            if [[ "$CURRENT_STATUS" == "completed" || "$CURRENT_STATUS" == "failed" ]]; then
+              break
+            fi
+            echo "Still running... sleeping 2 minutes."
+            sleep 120
+          done
+          if [[ "$CURRENT_STATUS" == "failed" ]]; then
+            echo "::error::Scan system failure."
+            exit 1
+          fi
+          RESULT=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
+          TOTAL=$(echo "$RESULT" | jq -r '.total_vulnerabilities_found // 0')
+          CRITICAL=$(echo "$RESULT" | jq -r '.critical_count // 0')
+          HIGH=$(echo "$RESULT" | jq -r '.high_count // 0')
+          MEDIUM=$(echo "$RESULT" | jq -r '.medium_count // 0')
+          LOW=$(echo "$RESULT" | jq -r '.low_count // 0')
+          ANALYSIS_JSON=$(jq -n \
+            --arg total "$TOTAL" \
+            --arg critical "$CRITICAL" \
+            --arg high "$HIGH" \
+            --arg medium "$MEDIUM" \
+            --arg low "$LOW" \
+            --arg completed_at "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+            '{total: $total, critical: $critical, high: $high, medium: $medium, low: $low, completed_at: $completed_at}')
+          echo "$ANALYSIS_JSON" > analysis_summary.json
+          echo "Analysis summary saved to analysis_summary.json: $ANALYSIS_JSON"
+          SCAN_COMPLETED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "Scan completed at: $SCAN_COMPLETED_AT"
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "No vulnerabilities found. Deployment allowed."
+          elif [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ] || [ "$MEDIUM" -gt 0 ]; then
+            echo "::error::Security gate failed. Found $CRITICAL Critical, $HIGH High, $MEDIUM Medium."
+          else
+            echo "Only low-level issues found. Proceeding."
+          fi
+  print_summary:
+      runs-on: self-hosted
+      needs: scan_validation
+      if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
+      steps:
+        - name: Print analysis summary
+          shell: bash
+          run: |
+            echo "--- Analysis Summary ---"
+            cat analysis_summary.json
+
+
+
+
