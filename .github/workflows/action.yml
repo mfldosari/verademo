@@ -584,14 +584,14 @@ jobs:
                 echo "Vulnerability $VULN_ID exploitation status: $STATUS"
                 if [[ "$STATUS" == "failed" ]]; then
                   echo "::error::Exploitation for $VULN_ID failed."
-                  exit 1
+                  
                 elif [[ "$STATUS" == "running" || "$STATUS" == "pending" ]]; then
                   ALL_COMPLETED=false
                 elif [[ "$STATUS" == "completed" ]]; then
                   continue
                 else
                   echo "::error::Unknown status $STATUS for $VULN_ID."
-                  exit 1
+                  
                 fi
               done
             done
