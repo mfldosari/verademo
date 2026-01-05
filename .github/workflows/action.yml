@@ -114,22 +114,17 @@ on:
         required: false
       # ENDING HERE
 jobs:
-  check_git_credentials:
-    name: Check Git Credentials Provided
+  validations:
+    name: Validations Process 
     runs-on: self-hosted
     steps:
-      - name: Check git_password or git_credentials provided
+      - name: Check git credentials provided
         shell: bash
         run: |
           if [ -z "${{ github.event.inputs.git_password }}" ] && [ -z "${{ github.event.inputs.git_credentials }}" ]; then
             echo "::error::You must provide at least one of 'git_password' or 'git_credentials'."
             exit 1
           fi
-
-  check_required_inputs:
-    name: Check Required Inputs
-    runs-on: self-hosted
-    steps:
       - name: Check Required Inputs (scan_only)
         if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
         shell: bash
@@ -234,10 +229,51 @@ jobs:
           if [ "$missing" -eq 1 ]; then
             exit 1
           fi
+      - name: Validate Issue Tracker Credentials
+        shell: bash
+        if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
+        run: |
+          echo "Validating Issue Tracker Credentials..."
+          if [[ "${{ github.event.inputs.tracker_type }}" == "github" ]]; then
+            HTTP_CODE=$(curl -s -u "${{ github.event.inputs.username }}:${{ github.event.inputs.password }}" -o /dev/null -w "%{http_code}" "https://api.github.com/user")
+            echo "GitHub API HTTP code: $HTTP_CODE"
+            if [[ "$HTTP_CODE" == "200" ]]; then
+              echo "GitHub credentials valid."
+            else
+              echo "::error::GitHub credentials invalid. HTTP code: $HTTP_CODE"
+              exit 1
+            fi
+          elif [[ "${{ github.event.inputs.tracker_type }}" == "jira" ]]; then
+            curl -s -u "${{ github.event.inputs.username }}:${{ github.event.inputs.password }}" \
+              -o /dev/null -w "%{http_code}" "${{ github.event.inputs.server_url }}/rest/api/2/myself" | grep -q "200"
+            if [[ $? -eq 0 ]]; then
+              echo "Jira credentials valid."
+            else
+              echo "::error::Jira credentials invalid."
+              exit 1
+            fi
+          else
+            echo "::error::Unknown tracker_type."
+            exit 1
+          fi
+      - name: Validate SVC Credentials
+        shell: bash
+        if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
+        run: |
+          echo "Validating SVC (Git) Credentials..."
+          GIT_URL="${{ github.event.inputs.git_url }}"
+          GIT_URL_NOPROTO=${GIT_URL#https://}
+          git ls-remote --exit-code --heads "https://${{ github.event.inputs.git_username }}:${{ github.event.inputs.git_password }}@${GIT_URL_NOPROTO}" > /dev/null 2>&1
+          if [[ $? -eq 0 ]]; then
+            echo "SVC credentials valid."
+          else
+            echo "::error::SVC credentials invalid."
+            exit 1
+          fi
   check_target_url:
       name: Check Target URL Connection
       runs-on: self-hosted
-      needs: [check_required_inputs]
+      needs: validations
       if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
       steps:
         - name: Check target url connection (scan_and_exploit)
@@ -275,64 +311,11 @@ jobs:
               exit 1
             fi
 
-  validate_issue_tracker:
-    name: Validate Issue Tracker Credentials
-    needs: [check_required_inputs, check_git_credentials]
+  execute_scan:
+    name: Trigger RASSED API Request
     runs-on: self-hosted
-    steps:
-      - name: Validate Issue Tracker Credentials
-        shell: bash
-        if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
-        run: |
-          echo "Validating Issue Tracker Credentials..."
-          if [[ "${{ github.event.inputs.tracker_type }}" == "github" ]]; then
-            HTTP_CODE=$(curl -s -u "${{ github.event.inputs.username }}:${{ github.event.inputs.password }}" -o /dev/null -w "%{http_code}" "https://api.github.com/user")
-            echo "GitHub API HTTP code: $HTTP_CODE"
-            if [[ "$HTTP_CODE" == "200" ]]; then
-              echo "GitHub credentials valid."
-            else
-              echo "::error::GitHub credentials invalid. HTTP code: $HTTP_CODE"
-              exit 1
-            fi
-          elif [[ "${{ github.event.inputs.tracker_type }}" == "jira" ]]; then
-            curl -s -u "${{ github.event.inputs.username }}:${{ github.event.inputs.password }}" \
-              -o /dev/null -w "%{http_code}" "${{ github.event.inputs.server_url }}/rest/api/2/myself" | grep -q "200"
-            if [[ $? -eq 0 ]]; then
-              echo "Jira credentials valid."
-            else
-              echo "::error::Jira credentials invalid."
-              exit 1
-            fi
-          else
-            echo "::error::Unknown tracker_type."
-            exit 1
-          fi
-
-  validate_svc:
-    name: Validate SVC (Git) Credentials
-    runs-on: self-hosted
-    needs: [check_required_inputs, check_git_credentials]
-    steps:
-      - name: Validate SVC Credentials
-        shell: bash
-        if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
-        run: |
-          echo "Validating SVC (Git) Credentials..."
-          GIT_URL="${{ github.event.inputs.git_url }}"
-          GIT_URL_NOPROTO=${GIT_URL#https://}
-          git ls-remote --exit-code --heads "https://${{ github.event.inputs.git_username }}:${{ github.event.inputs.git_password }}@${GIT_URL_NOPROTO}" > /dev/null 2>&1
-          if [[ $? -eq 0 ]]; then
-            echo "SVC credentials valid."
-          else
-            echo "::error::SVC credentials invalid."
-            exit 1
-          fi
-
-  execute_scan_only:
-    name: Trigger API Request (Scan Only)
-    runs-on: self-hosted
-    needs: [validate_svc, validate_issue_tracker, check_required_inputs, check_git_credentials]
-    if: ${{ github.event.inputs.action_type == 'scan_only' }}
+    needs: validations
+    if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
     steps:
       - name: Trigger API Request (Scan Only)
         if: ${{ github.event.inputs.action_type == 'scan_only' }}
@@ -378,13 +361,6 @@ jobs:
           echo "ID=$ID"
           echo "$ID" > scan_id.txt
 
-
-  execute_scan_exploit:
-    name: Trigger API Request (Scan and Exploit)
-    runs-on: self-hosted
-    needs: [validate_svc, check_target_url, validate_issue_tracker, check_required_inputs, check_git_credentials]
-    if: ${{github.event.inputs.action_type == 'scan_and_exploit' }}
-    steps:
       - name: Trigger API Request (Scan and Exploit)
         if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
         shell: bash
@@ -440,8 +416,8 @@ jobs:
   scan_status_validation:
     name: Scanning...    
     runs-on: self-hosted
-    needs: execute_scan_only
-    if: ${{ github.event.inputs.action_type == 'scan_only' }}
+    needs: execute_scan
+    if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
     steps:
       - name: Scan Validation & Check Security Thresholds
         id: scan_validation
@@ -493,67 +469,11 @@ jobs:
           else
             echo "Only low-level issues found. Proceeding."
           fi
-  scan_exploit_status_validation:
-    name: Scanning...
-    runs-on: self-hosted
-    needs: execute_scan_exploit
-    if: ${{github.event.inputs.action_type == 'scan_and_exploit' }}
-    steps:
-      - name: Scan Validation & Check Security Thresholds
-        id: scan_validation
-        shell: bash
-        run: |
-          SCAN_ID=$(cat scan_id.txt)
-          if [ -z "$SCAN_ID" ] || [ "$SCAN_ID" = "null" ]; then
-            echo "::error::No scan_id found. Cannot validate scan."
-            exit 1
-          fi
-          URL="http://${{ github.event.inputs.HOST }}/api/v1/scans/$SCAN_ID"
-          echo "Starting polling for Scan ID: $SCAN_ID"
-          while true; do
-            RESPONSE=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
-            CURRENT_STATUS=$(echo "$RESPONSE" | jq -r '.status')
-            echo "Current Status: $CURRENT_STATUS"
-            if [[ "$CURRENT_STATUS" == "completed" || "$CURRENT_STATUS" == "failed" ]]; then
-              break
-            fi
-            echo "Scanning... this may take a while.."
-            sleep 120
-          done
-          if [[ "$CURRENT_STATUS" == "failed" ]]; then
-            echo "::error::Scan system failure."
-            exit 1
-          fi
-          RESULT=$(curl -s -X 'GET' "$URL" -H 'accept: application/json')
-          TOTAL=$(echo "$RESULT" | jq -r '.total_vulnerabilities_found // 0')
-          CRITICAL=$(echo "$RESULT" | jq -r '.critical_count // 0')
-          HIGH=$(echo "$RESULT" | jq -r '.high_count // 0')
-          MEDIUM=$(echo "$RESULT" | jq -r '.medium_count // 0')
-          LOW=$(echo "$RESULT" | jq -r '.low_count // 0')
-          ANALYSIS_JSON=$(jq -n \
-            --arg total "$TOTAL" \
-            --arg critical "$CRITICAL" \
-            --arg high "$HIGH" \
-            --arg medium "$MEDIUM" \
-            --arg low "$LOW" \
-            --arg completed_at "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-            '{total: $total, critical: $critical, high: $high, medium: $medium, low: $low, completed_at: $completed_at}')
-          echo "$ANALYSIS_JSON" > analysis_summary.json
-          echo "Analysis summary saved to analysis_summary.json: $ANALYSIS_JSON"
-          SCAN_COMPLETED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          echo "Scan completed at: $SCAN_COMPLETED_AT"
-          if [ "$TOTAL" -eq 0 ]; then
-            echo "No vulnerabilities found. Deployment allowed."
-          elif [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ] || [ "$MEDIUM" -gt 0 ]; then
-            echo "::error::Security gate failed. Found $CRITICAL Critical, $HIGH High, $MEDIUM Medium."
-          else
-            echo "Only low-level issues found. Proceeding."
-          fi
 
   exploiting:
     name: Exploiting...
     runs-on: self-hosted
-    needs: scan_exploit_status_validation
+    needs: scan_status_validation
     if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
     steps:
       - name: Exploiting
@@ -604,22 +524,10 @@ jobs:
           done
         
   print_summary_scan:
-    name: Print Analysis Summary (Scan Only)
+    name: Print Analysis Summary 
     runs-on: self-hosted
     needs: scan_status_validation
-    if: ${{ github.event.inputs.action_type == 'scan_only'  }}
-    steps:
-      - name: Print analysis summary
-        shell: bash
-        run: |
-          echo "--- Analysis Summary ---"
-          cat analysis_summary.json
-
-  print_summary_scan_exploit:
-    name: Print Analysis Summary (Scan and Exploit)
-    runs-on: self-hosted
-    needs: exploiting
-    if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
+    if: ${{ github.event.inputs.action_type == 'scan_only' || github.event.inputs.action_type == 'scan_and_exploit' }}
     steps:
       - name: Print analysis summary
         shell: bash
