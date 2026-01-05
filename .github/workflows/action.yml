@@ -270,15 +270,11 @@ jobs:
             echo "::error::SVC credentials invalid."
             exit 1
           fi
-  check_target_url:
-      name: Check Target URL Connection
-      runs-on: self-hosted
-      needs: validations
-      if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
-      steps:
-        - name: Check target url connection (scan_and_exploit)
-          shell: bash
-          run: |
+          
+      - name: Check target url connection (scan_and_exploit)
+        shell: bash
+        if: ${{ github.event.inputs.action_type == 'scan_and_exploit' }}
+        run: |
             TARGET_URL="${{ github.event.inputs.exploiter_target_url }}"
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$TARGET_URL")
             CURL_EXIT_CODE=$?
